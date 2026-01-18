@@ -17,24 +17,54 @@ export default function AddInternship() {
     if (!token) navigate("/login");
   }, []);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  // const handleSubmit = (e) => {
+  //   e.preventDefault();
 
-    if (!company || !role || !appliedDate) {
-      setError("Please fill in company, role, and applied date");
-      return;
-    }
+  //   if (!company || !role || !appliedDate) {
+  //     setError("Please fill in company, role, and applied date");
+  //     return;
+  //   }
 
-    const newInternship = { company, role, appliedDate, deadline, status };
+  //   const newInternship = { company, role, appliedDate, deadline, status };
 
-    const savedInternships =
-      JSON.parse(localStorage.getItem("internships")) || [];
+  //   const savedInternships =
+  //     JSON.parse(localStorage.getItem("internships")) || [];
 
-    savedInternships.push(newInternship);
-    localStorage.setItem("internships", JSON.stringify(savedInternships));
+  //   savedInternships.push(newInternship);
+  //   localStorage.setItem("internships", JSON.stringify(savedInternships));
+
+  //   navigate("/dashboard");
+  // };
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  try {
+    const token = localStorage.getItem("token");
+
+    const res = await fetch("http://localhost:5000/api/internships", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        company,
+        role,
+        status,
+        appliedDate,
+        deadline,
+      }),
+    });
+
+    if (!res.ok) throw new Error("Save failed");
 
     navigate("/dashboard");
-  };
+  } catch (err) {
+    console.error(err);
+    alert("Failed to add internship");
+  }
+};
+
 
   const handleInputChange = (setter) => (e) => {
     setter(e.target.value);

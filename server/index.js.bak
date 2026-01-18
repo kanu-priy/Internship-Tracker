@@ -1,0 +1,149 @@
+// const express = require("express");
+// const mongoose = require("mongoose");
+// const cors = require("cors");
+// const bcrypt = require("bcryptjs");
+// const jwt = require("jsonwebtoken");
+
+// const app = express();
+// app.use(express.json());
+// app.use(cors());
+
+// // ---- DATABASE CONNECTION ----
+// mongoose
+//   .connect("mongodb://127.0.0.1:27017/internship-tracker")
+//   .then(() => console.log("MongoDB Connected"))
+//   .catch((err) => console.log(err));
+
+// // ---- USER SCHEMA ----
+// const UserSchema = new mongoose.Schema({
+//   email: String,
+//   password: String
+// });
+
+// const User = mongoose.model("User", UserSchema);
+
+// // ---- REGISTER API ----
+// app.post("/api/register", async (req, res) => {
+//   const { email, password } = req.body;
+
+//   const hashedPassword = await bcrypt.hash(password, 10);
+
+//   const newUser = new User({
+//     email,
+//     password: hashedPassword,
+//   });
+
+//   await newUser.save();
+
+//   res.send({ message: "Registered successfully" });
+// });
+
+// // ---- LOGIN API ----
+// app.post("/api/login", async (req, res) => {
+//   const { email, password } = req.body;
+
+//   const user = await User.findOne({ email });
+
+//   if (!user) return res.status(400).send({ message: "User not found" });
+
+//   const isMatch = await bcrypt.compare(password, user.password);
+
+//   if (!isMatch) return res.status(400).send({ message: "Wrong password" });
+
+//   const token = jwt.sign({ id: user._id }, "secret123");
+
+//   res.send({ message: "Login successful", token });
+// });
+
+// // ---- SERVER START ----
+// app.listen(5000, () => {
+//   console.log("Server running on port 5000");
+// });
+// server/index.js
+require("dotenv").config();
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+
+const User = require("./models/User");
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// --- MongoDB connect ---
+const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/deadlinedesk";
+mongoose
+  .connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.error("MongoDB connection error:", err));
+
+// Helper to sign JWT
+function signToken(user) {
+  const payload = { id: user._id, email: user.email, name: user.name };
+  return jwt.sign(payload, process.env.JWT_SECRET || "dev_secret", { expiresIn: "7d" });
+}
+
+// ----------------- REGISTER -----------------
+app.post("/api/register", async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    if (!name || !email || !password)
+      return res.status(400).json({ message: "All fields are required" });
+
+    const existing = await User.findOne({ email });
+    if (existing) return res.status(409).json({ message: "Account already exists with this email" });
+
+    const saltRounds = 10;
+    const hashed = await bcrypt.hash(password, saltRounds);
+
+    const user = new User({ name, email, password: hashed });
+    await user.save();
+
+    const token = signToken(user);
+    res.status(201).json({ message: "Registration successful", token, user: { name: user.name, email: user.email, id: user._id } });
+  } catch (err) {
+    console.error("Register error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ----------------- LOGIN -----------------
+app.post("/api/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ message: "Email and password required" });
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(401).json({ message: "Invalid credentials" });
+
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(401).json({ message: "Invalid credentials" });
+
+    const token = signToken(user);
+    res.json({ message: "Login successful", token, user: { name: user.name, email: user.email, id: user._id } });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ----------------- protected test route (optional) -----------------
+app.get("/api/me", async (req, res) => {
+  const auth = req.headers.authorization;
+  if (!auth) return res.status(401).json({ message: "No token" });
+  const token = auth.split(" ")[1];
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET || "dev_secret");
+    const user = await User.findById(payload.id).select("-password");
+    res.json({ user });
+  } catch (err) {
+    res.status(401).json({ message: "Invalid token" });
+  }
+});
+
+// start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server started on port ${PORT}`));

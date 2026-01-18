@@ -6,7 +6,7 @@ export default function Sidebar() {
       <ul className="space-y-4">
         <li><a href="/dashboard" className="block hover:text-gray-300">Dashboard</a></li>
         <li><a href="/add" className="block hover:text-gray-300">Add Internship</a></li>
-        <li><a href="/profile" className="block hover:text-gray-300">Profile</a></li>
+       
 
         {/* ⭐ Added My Account Link */}
         <li><a href="/account" className="block hover:text-gray-300">My Account</a></li>

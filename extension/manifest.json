@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "DeadlineDesk Internship Saver",
+  "version": "1.0",
+  "description": "Save internships directly from job portals to DeadlineDesk.",
+  
+  "permissions": ["activeTab", "tabs", "scripting", "storage"],
+
+  "host_permissions": ["http://localhost:5000/*"],
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ]
+}

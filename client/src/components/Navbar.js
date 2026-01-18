@@ -19,7 +19,7 @@ export default function Navbar() {
 
   return (
     <div className="w-full bg-white shadow p-4 flex justify-between items-center">
-      <h2 className="text-xl font-bold">Internship Tracker</h2>
+      <h2 className="text-xl font-bold">DeadlineDesk</h2>
 
       <button
         onClick={handleLogout}

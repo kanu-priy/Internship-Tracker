@@ -1,3 +1,4 @@
+/* global chrome */
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
@@ -37,6 +38,13 @@ export default function Login() {
       // ⭐ Save token + user info
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
+//       // 🔥 FOR EXTENSION
+//       if (typeof window !== "undefined" && window.chrome?.storage) {
+//   window.chrome.storage.local.set({ token: data.token });
+// }// 🔥 REQUIRED FOR EXTENSION
+if (window.chrome?.storage) {
+  chrome.storage.local.set({ token: data.token });
+}
 
       // ⭐ Redirect to Dashboard
       navigate("/dashboard");
@@ -55,7 +63,7 @@ export default function Login() {
         className="w-full max-w-md bg-white shadow-lg rounded-xl p-8"
       >
         <h2 className="text-2xl font-bold mb-6 text-center">
-          Internship Tracker Login
+            DeadlineDesk Login
         </h2>
 
         {error && <div className="mb-4 text-red-600 text-sm">{error}</div>}
