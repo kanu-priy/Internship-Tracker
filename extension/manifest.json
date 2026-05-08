@@ -1,22 +1,55 @@
-{
+﻿{
   "manifest_version": 3,
-  "name": "DeadlineDesk Internship Saver",
-  "version": "1.0",
-  "description": "Save internships directly from job portals to DeadlineDesk.",
-  
-  "permissions": ["activeTab", "tabs", "scripting", "storage"],
+  "name": "DeadlineDesk",
+  "version": "1.0.0",
+  "description": "Track internship applications, get deadline alarms, and highlight applied jobs on LinkedIn & Internshala.",
 
-  "host_permissions": ["http://localhost:5000/*"],
+  "permissions": [
+    "storage",
+    "alarms",
+    "notifications",
+    "tabs",
+    "activeTab"
+  ],
 
-  "action": {
-    "default_popup": "popup.html",
-    "default_icon": "icon.png"
+  "externally_connectable": {
+    "matches": [
+      "http://localhost:3000/*",
+      "https://yourdomain.com/*"
+    ]
+  },
+
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;"
+  },
+
+  "background": {
+    "service_worker": "background.js"
   },
 
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"]
+      "matches": [
+        "https://www.linkedin.com/jobs/*",
+        "https://internshala.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
     }
-  ]
+  ],
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16":  "icon.png",
+      "48":  "icon.png",
+      "128": "icon.png"
+    }
+  },
+
+  "icons": {
+    "16":  "icon.png",
+    "48":  "icon.png",
+    "128": "icon.png"
+  }
 }

@@ -1,36 +1,382 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <style>
-      body {
-        font-family: Arial;
-        padding: 10px;
-        width: 250px;
-      }
-      input,
-      button {
-        width: 100%;
-        margin-bottom: 8px;
-        padding: 6px;
-      }
-      button {
-        background: #2563eb;
-        color: white;
-        border: none;
-        cursor: pointer;
-      }
-    </style>
-  </head>
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>DeadlineDesk</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:         #080c14;
+      --surface:    rgba(255,255,255,0.05);
+      --border:     rgba(255,255,255,0.08);
+      --border-hi:  rgba(255,255,255,0.16);
+      --text:       #f0f4ff;
+      --muted:      rgba(200,210,255,0.45);
+      --amber:      #f59e0b;
+      --amber-dim:  rgba(245,158,11,0.12);
+      --amber-glow: rgba(245,158,11,0.35);
+      --green:      #10b981;
+      --green-dim:  rgba(16,185,129,0.12);
+      --red:        #f87171;
+      --red-dim:    rgba(248,113,113,0.12);
+      --violet:     #a78bfa;
+    }
+    body {
+      width: 360px; background: var(--bg);
+      font-family: 'DM Sans', sans-serif; color: var(--text);
+      overflow: hidden; position: relative;
+    }
+    .blob { position: fixed; border-radius: 50%; filter: blur(70px); pointer-events: none; z-index: 0; }
+    .blob-1 { width: 240px; height: 240px; background: rgba(245,158,11,0.11); top: -80px; left: -70px; }
+    .blob-2 { width: 200px; height: 200px; background: rgba(139,92,246,0.09); bottom: -60px; right: -50px; }
+    .grid-bg {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image: linear-gradient(rgba(255,255,255,0.016) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255,255,255,0.016) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    .shell { position: relative; z-index: 1; display: flex; flex-direction: column; padding: 16px 16px 14px; gap: 12px; }
 
-  <body>
-    <h3>Save Internship</h3>
+    /* ── Header ── */
+    .header { display: flex; align-items: center; justify-content: space-between; animation: fadeUp .3s ease both; }
+    .logo { display: flex; align-items: center; gap: 8px; }
+    .logo-icon {
+      width: 30px; height: 30px; background: linear-gradient(135deg, #f59e0b, #d97706);
+      border-radius: 9px; display: flex; align-items: center; justify-content: center;
+      font-size: 14px; box-shadow: 0 4px 14px var(--amber-glow);
+    }
+    .logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 14px; letter-spacing: -0.3px; }
+    .logo-text span { color: var(--amber); }
 
-    <input id="company" placeholder="Company" />
-    <input id="role" placeholder="Role" />
+    /* ── Nav tabs ── */
+    .nav-tabs {
+      display: flex; gap: 4px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 12px; padding: 3px;
+      animation: fadeUp .3s .04s ease both;
+    }
+    .nav-tab {
+      flex: 1; padding: 7px 4px; border: none; border-radius: 9px;
+      background: transparent; color: var(--muted);
+      font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600;
+      cursor: pointer; transition: all .18s; display: flex;
+      align-items: center; justify-content: center; gap: 4px;
+      letter-spacing: 0.01em;
+    }
+    .nav-tab:hover { color: var(--text); }
+    .nav-tab.active { background: rgba(255,255,255,0.08); color: var(--text); }
+    .nav-tab.active.tab-add     { background: var(--amber-dim); color: var(--amber); }
+    .nav-tab.active.tab-queue   { background: var(--green-dim); color: var(--green); }
+    .nav-tab.active.tab-alarms  { background: rgba(167,139,250,0.12); color: var(--violet); }
 
-    <button id="saveBtn">Save Internship</button>
-    <p id="status" style="font-size:12px; margin-top:8px;"></p>
+    .tab-badge {
+      background: var(--green); color: #000; border-radius: 20px;
+      padding: 1px 5px; font-size: 9px; font-weight: 800; min-width: 16px; text-align: center;
+    }
+    .tab-badge.amber { background: var(--amber); }
+    .tab-badge.red   { background: var(--red); color: #fff; }
 
-    <script src="popup.js"></script>
-  </body>
+    /* ── Divider ── */
+    .divider { height: 1px; background: var(--border); }
+
+    /* ── Views ── */
+    .view { display: none; flex-direction: column; gap: 10px; animation: fadeUp .25s ease both; }
+    .view.active { display: flex; }
+
+    .section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: .09em;
+      text-transform: uppercase; color: var(--muted);
+    }
+
+    /* inputs */
+    .field-input {
+      width: 100%; padding: 10px 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text);
+      font-family: 'DM Sans', sans-serif; font-size: 13px;
+      outline: none; transition: border-color .2s, box-shadow .2s;
+    }
+    .field-input::placeholder { color: var(--muted); }
+    .field-input:focus { border-color: rgba(245,158,11,.5); box-shadow: 0 0 0 3px rgba(245,158,11,.1); }
+    input[type="date"].field-input { color-scheme: dark; }
+
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    /* status pills */
+    .status-row { display: flex; gap: 5px; flex-wrap: wrap; }
+    .s-pill {
+      padding: 5px 11px; border-radius: 20px; font-size: 11px; font-weight: 600;
+      cursor: pointer; border: 1px solid rgba(255,255,255,.1);
+      background: rgba(255,255,255,.04); color: var(--muted); transition: all .18s;
+    }
+    .s-pill:hover { color: var(--text); border-color: rgba(255,255,255,.2); }
+    .s-pill.sel-Applied   { background:rgba(59,130,246,.18); border-color:rgba(59,130,246,.4); color:#93c5fd; }
+    .s-pill.sel-Interview { background:rgba(245,158,11,.18); border-color:rgba(245,158,11,.4); color:#fcd34d; }
+    .s-pill.sel-OA        { background:rgba(139,92,246,.18); border-color:rgba(139,92,246,.4); color:#c4b5fd; }
+    .s-pill.sel-Offer     { background:rgba(16,185,129,.18); border-color:rgba(16,185,129,.4); color:#6ee7b7; }
+    .s-pill.sel-Rejected  { background:rgba(239,68,68,.14); border-color:rgba(239,68,68,.35); color:#fca5a5; }
+
+    /* buttons */
+    .btn-primary {
+      width: 100%; padding: 11px;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      border: none; border-radius: 10px; color: #000;
+      font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+      box-shadow: 0 4px 16px var(--amber-glow); transition: transform .15s, box-shadow .2s;
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 7px 22px var(--amber-glow); }
+    .btn-primary:active { transform: none; }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    .btn-ghost {
+      width: 100%; padding: 9px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--muted);
+      font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;
+      transition: border-color .2s, color .2s;
+    }
+    .btn-ghost:hover { border-color: var(--border-hi); color: var(--text); }
+
+    /* ── Queue list ── */
+    .scroll-list { display: flex; flex-direction: column; gap: 7px; max-height: 260px; overflow-y: auto; }
+    .scroll-list::-webkit-scrollbar { width: 3px; }
+    .scroll-list::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 4px; }
+
+    .q-item {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 11px; padding: 10px 12px;
+      display: flex; align-items: center; gap: 9px;
+    }
+    .q-item-info { flex: 1; min-width: 0; }
+    .q-company { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .q-role    { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+    .q-date    { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+    .q-status  { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; flex-shrink: 0; }
+    .qs-Applied   { background:rgba(59,130,246,.15);  color:#93c5fd; }
+    .qs-Interview { background:rgba(245,158,11,.15);  color:#fcd34d; }
+    .qs-OA        { background:rgba(139,92,246,.15);  color:#c4b5fd; }
+    .qs-Offer     { background:rgba(16,185,129,.15);  color:#6ee7b7; }
+    .qs-Rejected  { background:rgba(239,68,68,.12);   color:#fca5a5; }
+
+    .btn-del-q {
+      background: none; border: none; cursor: pointer; color: var(--muted);
+      font-size: 13px; padding: 2px 4px; border-radius: 6px;
+      transition: color .2s, background .2s; flex-shrink: 0;
+    }
+    .btn-del-q:hover { color: var(--red); background: var(--red-dim); }
+
+    .empty-state { text-align: center; padding: 28px 10px; color: var(--muted); font-size: 13px; }
+    .empty-state span { display: block; font-size: 26px; margin-bottom: 7px; }
+
+    .btn-danger {
+      width: 100%; padding: 9px;
+      background: var(--red-dim); border: 1px solid rgba(248,113,113,.2);
+      border-radius: 10px; color: var(--red);
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      transition: background .2s; font-family: 'DM Sans', sans-serif;
+    }
+    .btn-danger:hover { background: rgba(248,113,113,.22); }
+
+    /* ── Alarms view ── */
+    .alarm-header {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(167,139,250,0.08); border: 1px solid rgba(167,139,250,0.18);
+      border-radius: 12px; padding: 11px 14px;
+    }
+    .alarm-icon { font-size: 22px; }
+    .alarm-header-info { flex: 1; }
+    .alarm-header-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; }
+    .alarm-header-sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    .alarm-toggle {
+      position: relative; width: 38px; height: 22px; flex-shrink: 0;
+    }
+    .alarm-toggle input { opacity: 0; width: 0; height: 0; }
+    .alarm-slider {
+      position: absolute; inset: 0; cursor: pointer;
+      background: rgba(255,255,255,0.1); border: 1px solid var(--border);
+      border-radius: 22px; transition: background .2s, border-color .2s;
+    }
+    .alarm-slider::before {
+      content: ''; position: absolute;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: var(--muted); bottom: 2px; left: 2px;
+      transition: transform .2s, background .2s;
+    }
+    .alarm-toggle input:checked + .alarm-slider { background: rgba(167,139,250,0.25); border-color: rgba(167,139,250,0.45); }
+    .alarm-toggle input:checked + .alarm-slider::before { transform: translateX(16px); background: var(--violet); }
+
+    .upcoming-list { display: flex; flex-direction: column; gap: 7px; }
+
+    .deadline-item {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 11px; padding: 10px 12px;
+    }
+    .deadline-urgency {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .urgency-hot    { background: var(--red);   box-shadow: 0 0 6px var(--red); }
+    .urgency-soon   { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+    .urgency-normal { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+    .deadline-info { flex: 1; min-width: 0; }
+    .deadline-company { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .deadline-role    { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .deadline-days    { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+    .days-hot  { color: var(--red); }
+    .days-soon { color: var(--amber); }
+    .days-ok   { color: var(--green); }
+
+    .test-alarm-btn {
+      width: 100%; padding: 9px;
+      background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.22);
+      border-radius: 10px; color: var(--violet);
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      transition: background .2s; font-family: 'DM Sans', sans-serif;
+    }
+    .test-alarm-btn:hover { background: rgba(167,139,250,0.2); }
+
+    /* ── Footer ── */
+    .footer {
+      display: flex; align-items: center; justify-content: center;
+      gap: 5px; font-size: 10px; color: var(--muted);
+      border-top: 1px solid var(--border); padding-top: 10px;
+    }
+    .footer-dot { width: 3px; height: 3px; background: var(--amber); border-radius: 50%; opacity: .6; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 12px; left: 50%;
+      transform: translateX(-50%) translateY(50px);
+      background: rgba(8,12,20,0.92); border: 1px solid var(--border-hi);
+      backdrop-filter: blur(14px); border-radius: 20px;
+      padding: 7px 14px; font-size: 12px; font-weight: 500;
+      white-space: nowrap; transition: transform .28s cubic-bezier(.16,1,.3,1), opacity .28s;
+      opacity: 0; z-index: 99; pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast.success { color: #6ee7b7; border-color: rgba(16,185,129,.35); }
+    .toast.error   { color: #fca5a5; border-color: rgba(248,113,113,.35); }
+    .toast.info    { color: #93c5fd; border-color: rgba(79,142,255,.35); }
+
+    @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+  </style>
+</head>
+<body>
+
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="grid-bg"></div>
+
+<div class="shell">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">📋</div>
+      <div class="logo-text">Deadline<span>Desk</span></div>
+    </div>
+    <button class="btn-ghost" id="openDashboard" style="width:auto;padding:6px 11px;font-size:11px;">
+      Open Dashboard ↗
+    </button>
+  </div>
+
+  <!-- Nav Tabs -->
+  <div class="nav-tabs">
+    <button class="nav-tab tab-add active" data-view="view-add">➕ Add</button>
+    <button class="nav-tab tab-queue" data-view="view-queue">
+      📦 Queue <span class="tab-badge" id="tab-queue-count">0</span>
+    </button>
+    <button class="nav-tab tab-alarms" data-view="view-alarms">
+      🔔 Alarms <span class="tab-badge red" id="tab-alarm-count" style="display:none">!</span>
+    </button>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ══ VIEW: Add ══ -->
+  <div class="view active" id="view-add">
+    <div class="section-label">Log an Application</div>
+
+    <input id="inp-company"  class="field-input" type="text"  placeholder="Company (e.g. Google)" />
+    <input id="inp-role"     class="field-input" type="text"  placeholder="Role (e.g. SWE Intern)" />
+
+    <div class="row2">
+      <input id="inp-date"     class="field-input" type="date" title="Applied date" />
+      <input id="inp-deadline" class="field-input" type="date" title="Deadline (optional)" />
+    </div>
+
+    <div>
+      <div class="section-label" style="margin-bottom:6px">Status</div>
+      <div class="status-row" id="statusRow">
+        <button class="s-pill sel-Applied" data-s="Applied">Applied</button>
+        <button class="s-pill" data-s="Interview">Interview</button>
+        <button class="s-pill" data-s="OA">OA</button>
+        <button class="s-pill" data-s="Offer">Offer</button>
+        <button class="s-pill" data-s="Rejected">Rejected</button>
+      </div>
+    </div>
+
+    <button class="btn-primary" id="saveBtn">＋ Save to Queue</button>
+  </div>
+
+  <!-- ══ VIEW: Queue ══ -->
+  <div class="view" id="view-queue">
+    <div class="section-label">Saved Applications</div>
+    <div class="scroll-list" id="queueList"></div>
+    <button class="btn-danger" id="clearAllBtn">🗑 Clear All</button>
+    <button class="btn-ghost" id="openDashboard2">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+        <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+      </svg>
+      Sync to Dashboard
+    </button>
+  </div>
+
+  <!-- ══ VIEW: Alarms ══ -->
+  <div class="view" id="view-alarms">
+
+    <!-- Toggle card -->
+    <div class="alarm-header">
+      <div class="alarm-icon">🔔</div>
+      <div class="alarm-header-info">
+        <div class="alarm-header-title">Deadline Alarms</div>
+        <div class="alarm-header-sub">Notifies 3 days, 1 day &amp; day-of</div>
+      </div>
+      <label class="alarm-toggle">
+        <input type="checkbox" id="alarmToggle" checked />
+        <span class="alarm-slider"></span>
+      </label>
+    </div>
+
+    <!-- Upcoming deadlines -->
+    <div class="section-label">Upcoming Deadlines</div>
+    <div class="upcoming-list" id="upcomingList"></div>
+
+    <!-- Test button -->
+    <button class="test-alarm-btn" id="testAlarmBtn">
+      🔔 Fire Test Notification
+    </button>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>No auth needed</span>
+    <div class="footer-dot"></div>
+    <span>"Track This" on job pages</span>
+    <div class="footer-dot"></div>
+    <span>Syncs on open</span>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="popup.js"></script>
+</body>
 </html>

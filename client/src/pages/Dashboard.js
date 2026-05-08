@@ -1,427 +1,524 @@
-// import React, { useEffect, useState, useCallback } from "react";
-// import Navbar from "../components/Navbar";
-// import Sidebar from "../components/Sidebar";
-// import DashboardCard from "../components/DashboardCard";
-// import { useNavigate } from "react-router-dom";
-
-// export default function Dashboard() {
-//   const navigate = useNavigate();
-
-//   const [user, setUser] = useState({});
-//   const [internships, setInternships] = useState([]);
-
-//   const [search, setSearch] = useState("");
-//   const [filterStatus, setFilterStatus] = useState("All");
-//   const [sortOrder, setSortOrder] = useState("newest");
-
-//   /* ---------------------------------------
-//      🔐 AUTH CHECK
-//   ----------------------------------------*/
-//   useEffect(() => {
-//     const token = localStorage.getItem("token");
-//     if (!token) navigate("/login");
-//   }, [navigate]);
-
-//   /* ---------------------------------------
-//      👤 LOAD USER
-//   ----------------------------------------*/
-//   useEffect(() => {
-//     const storedUser = localStorage.getItem("user");
-//     if (storedUser) {
-//       try {
-//         setUser(JSON.parse(storedUser));
-//       } catch {
-//         localStorage.removeItem("user");
-//       }
-//     }
-//   }, []);
-
-//   /* ---------------------------------------
-//      📡 FETCH INTERNSHIPS (MEMOIZED)
-//   ----------------------------------------*/
-//   const fetchInternships = useCallback(async () => {
-//     try {
-//       const token = localStorage.getItem("token");
-
-//       const res = await fetch("http://localhost:5000/api/internships", {
-//         headers: {
-//           Authorization: `Bearer ${token}`,
-//         },
-//       });
-
-//       if (!res.ok) throw new Error("Fetch failed");
-
-//       const data = await res.json();
-//       setInternships(data);
-//     } catch (err) {
-//       console.error("Fetch internships failed", err);
-//     }
-//   }, []);
-
-//   /* ---------------------------------------
-//      🚀 INITIAL LOAD
-//   ----------------------------------------*/
-//   useEffect(() => {
-//     fetchInternships();
-//   }, [fetchInternships]);
-
-//   /* ---------------------------------------
-//      🧩 LISTEN FROM EXTENSION
-//   ----------------------------------------*/
-//   // useEffect(() => {
-//   //   function handleMessage(event) {
-//   //     if (event.data?.type === "ADD_INTERNSHIP_DEADLINEDESK") {
-//   //       console.log("🔄 Extension added internship → refreshing");
-//   //       fetchInternships();
-//   //     }
-//   //   }
-
-//   //   window.addEventListener("message", handleMessage);
-//   //   return () => window.removeEventListener("message", handleMessage);
-//   // }, [fetchInternships]);
-//   useEffect(() => {
-//   async function handleMessage(event) {
-//     if (event.data?.type === "ADD_INTERNSHIP_DEADLINEDESK") {
-//       const token = localStorage.getItem("token");
-//       if (!token) {
-//         alert("Please login first");
-//         return;
-//       }
-
-//       try {
-//         const res = await fetch("http://localhost:5000/api/internships", {
-//           method: "POST",
-//           headers: {
-//             "Content-Type": "application/json",
-//             Authorization: `Bearer ${token}`,
-//           },
-//           body: JSON.stringify(event.data.internship),
-//         });
-
-//         if (!res.ok) throw new Error("Save failed");
-
-//         // refresh dashboard
-//         fetchInternships();
-//         alert("Internship saved to MongoDB");
-//       } catch (err) {
-//         console.error(err);
-//         alert("Failed to save internship");
-//       }
-//     }
-//   }
-
-//   window.addEventListener("message", handleMessage);
-//   return () => window.removeEventListener("message", handleMessage);
-// }, []);
-
-
-//   /* ---------------------------------------
-//      ❌ DELETE
-//   ----------------------------------------*/
-//   const handleDelete = async (id) => {
-//     if (!window.confirm("Delete this internship?")) return;
-
-//     try {
-//       const token = localStorage.getItem("token");
-//       await fetch(`http://localhost:5000/api/internships/${id}`, {
-//         method: "DELETE",
-//         headers: { Authorization: `Bearer ${token}` },
-//       });
-
-//       fetchInternships();
-//     } catch (err) {
-//       console.error("Delete failed", err);
-//     }
-//   };
-
-//   /* ---------------------------------------
-//      ✏️ EDIT
-//   ----------------------------------------*/
-//   const handleEdit = (id) => {
-//     navigate(`/edit/${id}`);
-//   };
-
-//   /* ---------------------------------------
-//      📊 SUMMARY
-//   ----------------------------------------*/
-//   const summary = internships.reduce(
-//     (acc, item) => {
-//       acc[item.status] = (acc[item.status] || 0) + 1;
-//       return acc;
-//     },
-//     { Applied: 0, Interview: 0, OA: 0, Offer: 0, Rejected: 0 }
-//   );
-
-//   const statusColors = {
-//     Applied: "bg-blue-500",
-//     Interview: "bg-yellow-500",
-//     OA: "bg-indigo-500",
-//     Offer: "bg-green-500",
-//     Rejected: "bg-red-500",
-//   };
-
-//   /* ---------------------------------------
-//      🔍 FILTER + SORT
-//   ----------------------------------------*/
-//   const filteredInternships = internships
-//     .filter((i) => {
-//       if (filterStatus !== "All" && i.status !== filterStatus) return false;
-//       if (
-//         search &&
-//         !i.company.toLowerCase().includes(search.toLowerCase()) &&
-//         !i.role.toLowerCase().includes(search.toLowerCase())
-//       )
-//         return false;
-//       return true;
-//     })
-//     .sort((a, b) => {
-//       const da = new Date(a.appliedDate);
-//       const db = new Date(b.appliedDate);
-//       return sortOrder === "newest" ? db - da : da - db;
-//     });
-
-//   /* ---------------------------------------
-//      🧩 UI
-//   ----------------------------------------*/
-//   return (
-//     <div className="flex min-h-screen">
-//       <Sidebar />
-
-//       <div className="flex-1 flex flex-col">
-//         <Navbar />
-
-//         <div className="p-6 bg-gray-100 flex-1">
-//           <h1 className="text-3xl font-semibold mb-6">
-//             Welcome, {user.name || "User"}
-//           </h1>
-
-//           {/* Summary Cards */}
-//           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-//             {Object.keys(summary).map((status) => (
-//               <DashboardCard
-//                 key={status}
-//                 title={status}
-//                 count={summary[status]}
-//                 color={statusColors[status]}
-//               />
-//             ))}
-//           </div>
-
-//           {/* Filters */}
-//           <div className="flex flex-col md:flex-row gap-4 mb-6 bg-white p-4 shadow rounded-lg">
-//             <input
-//               type="text"
-//               placeholder="Search company or role"
-//               value={search}
-//               onChange={(e) => setSearch(e.target.value)}
-//               className="p-3 border rounded-md flex-1"
-//             />
-
-//             <select
-//               value={filterStatus}
-//               onChange={(e) => setFilterStatus(e.target.value)}
-//               className="p-3 border rounded-md"
-//             >
-//               <option value="All">All</option>
-//               {Object.keys(summary).map((s) => (
-//                 <option key={s} value={s}>
-//                   {s}
-//                 </option>
-//               ))}
-//             </select>
-
-//             <select
-//               value={sortOrder}
-//               onChange={(e) => setSortOrder(e.target.value)}
-//               className="p-3 border rounded-md"
-//             >
-//               <option value="newest">Newest</option>
-//               <option value="oldest">Oldest</option>
-//             </select>
-//           </div>
-
-//           {/* Table */}
-//           {filteredInternships.length === 0 ? (
-//             <div className="bg-white p-6 rounded shadow text-center">
-//               No internships found.
-//             </div>
-//           ) : (
-//             <div className="bg-white shadow rounded overflow-x-auto">
-//               <table className="w-full">
-//                 <thead className="bg-gray-200">
-//                   <tr>
-//                     <th className="p-3">Company</th>
-//                     <th className="p-3">Role</th>
-//                     <th className="p-3">Status</th>
-//                     <th className="p-3">Applied</th>
-//                     <th className="p-3">Deadline</th>
-//                     <th className="p-3">Actions</th>
-//                   </tr>
-//                 </thead>
-//                 <tbody>
-//                   {filteredInternships.map((item) => (
-//                     <tr key={item._id} className="border-b">
-//                       <td className="p-3">{item.company}</td>
-//                       <td className="p-3">{item.role}</td>
-//                       <td className="p-3">
-//                         <span
-//                           className={`px-2 py-1 text-xs text-white rounded ${statusColors[item.status]}`}
-//                         >
-//                           {item.status}
-//                         </span>
-//                       </td>
-//                       <td className="p-3">{item.appliedDate}</td>
-//                       <td className="p-3">{item.deadline || "-"}</td>
-//                       <td className="p-3 flex gap-2">
-//                         <button
-//                           onClick={() => handleEdit(item._id)}
-//                           className="bg-yellow-500 text-white px-3 py-1 text-xs rounded"
-//                         >
-//                           Edit
-//                         </button>
-//                         <button
-//                           onClick={() => handleDelete(item._id)}
-//                           className="bg-red-500 text-white px-3 py-1 text-xs rounded"
-//                         >
-//                           Delete
-//                         </button>
-//                       </td>
-//                     </tr>
-//                   ))}
-//                 </tbody>
-//               </table>
-//             </div>
-//           )}
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
+﻿/* global chrome */
 import React, { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import DashboardCard from "../components/DashboardCard";
 import { useNavigate } from "react-router-dom";
+
+const EXTENSION_ID = "hlbpahiogcemdholecbgommhgdppcfdj";
+
+const styles = `
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+
+  .dash-root {
+    display: flex;
+    min-height: 100vh;
+    background: #0a0a0f;
+    font-family: 'DM Sans', sans-serif;
+    color: #fff;
+  }
+
+  .dash-main-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .dash-main {
+    flex: 1;
+    padding: 36px 40px;
+    background: #0a0a0f;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .dash-bg-orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(100px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .d-orb1 { width: 600px; height: 600px; background: rgba(245,158,11,0.06); top: -150px; left: 200px; }
+  .d-orb2 { width: 400px; height: 400px; background: rgba(139,92,246,0.07); bottom: -100px; right: -100px; }
+
+  .dash-content { position: relative; z-index: 1; }
+
+  /* Header */
+  .dash-header { margin-bottom: 36px; }
+
+  .dash-greeting {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 36px;
+    color: #fff;
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+  }
+
+  .dash-greeting span { color: #f59e0b; }
+
+  .dash-subtext {
+    font-size: 15px;
+    color: rgba(255,255,255,0.38);
+  }
+
+  /* Stats */
+  .dash-stats {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  @media (max-width: 1200px) { .dash-stats { grid-template-columns: repeat(3,1fr); } }
+  @media (max-width: 700px) { .dash-stats { grid-template-columns: repeat(2,1fr); } }
+
+  .stat-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 20px;
+    padding: 24px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.14);
+  }
+
+  .stat-card-glow {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    filter: blur(30px);
+    top: -10px;
+    right: -10px;
+    opacity: 0.5;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 12px;
+  }
+
+  .stat-count {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 42px;
+    letter-spacing: -2px;
+    line-height: 1;
+  }
+
+  /* Loading */
+  .dash-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 40px;
+    gap: 12px;
+    color: rgba(255,255,255,0.3);
+    font-size: 15px;
+  }
+
+  .dash-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255,255,255,0.1);
+    border-top-color: #f59e0b;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Sync toast */
+  .dash-sync-toast {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(16,185,129,0.12);
+    border: 1px solid rgba(16,185,129,0.25);
+    color: #6ee7b7;
+    font-size: 13px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Filters */
+  .dash-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 28px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    padding: 18px 20px;
+    border-radius: 18px;
+  }
+
+  .dash-search {
+    flex: 1;
+    min-width: 200px;
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: all 0.2s;
+  }
+  .dash-search::placeholder { color: rgba(255,255,255,0.2); }
+  .dash-search:focus { border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.04); }
+
+  .dash-select {
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .dash-select option { background: #1a1a2e; color: #fff; }
+  .dash-select:focus { border-color: rgba(245,158,11,0.4); }
+
+  /* Table */
+  .dash-table-wrap {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 20px;
+    overflow: hidden;
+  }
+
+  .dash-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  .dash-table thead {
+    background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .dash-table thead th {
+    padding: 16px 20px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+  }
+
+  .dash-table tbody tr {
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.15s;
+    animation: fadeRow 0.3s ease forwards;
+    opacity: 0;
+  }
+
+  .dash-table tbody tr:last-child { border-bottom: none; }
+  .dash-table tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+  .dash-table td {
+    padding: 16px 20px;
+    color: rgba(255,255,255,0.75);
+    vertical-align: middle;
+  }
+
+  .td-company {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    color: #fff !important;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  .status-Applied { background: rgba(59,130,246,0.15); color: #93c5fd; border: 1px solid rgba(59,130,246,0.2); }
+  .status-Applied .status-dot { background: #60a5fa; }
+  .status-Interview { background: rgba(245,158,11,0.15); color: #fcd34d; border: 1px solid rgba(245,158,11,0.2); }
+  .status-Interview .status-dot { background: #fbbf24; }
+  .status-OA { background: rgba(139,92,246,0.15); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.2); }
+  .status-OA .status-dot { background: #a78bfa; }
+  .status-Offer { background: rgba(16,185,129,0.15); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.2); }
+  .status-Offer .status-dot { background: #34d399; }
+  .status-Rejected { background: rgba(239,68,68,0.12); color: #fca5a5; border: 1px solid rgba(239,68,68,0.2); }
+  .status-Rejected .status-dot { background: #f87171; }
+
+  .btn-edit {
+    padding: 7px 16px;
+    background: rgba(245,158,11,0.15);
+    border: 1px solid rgba(245,158,11,0.25);
+    border-radius: 8px;
+    color: #fbbf24;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+    margin-right: 8px;
+  }
+  .btn-edit:hover { background: rgba(245,158,11,0.25); border-color: rgba(245,158,11,0.4); }
+
+  .btn-delete {
+    padding: 7px 16px;
+    background: rgba(239,68,68,0.12);
+    border: 1px solid rgba(239,68,68,0.2);
+    border-radius: 8px;
+    color: #f87171;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .btn-delete:hover { background: rgba(239,68,68,0.22); border-color: rgba(239,68,68,0.4); }
+
+  .dash-empty {
+    text-align: center;
+    padding: 80px 40px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 20px;
+  }
+  .dash-empty-icon { font-size: 52px; margin-bottom: 16px; }
+  .dash-empty-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 8px;
+  }
+  .dash-empty-sub { color: rgba(255,255,255,0.3); font-size: 14px; }
+
+  @keyframes fadeRow { to { opacity: 1; } }
+`;
+
+const statConfig = {
+  Applied:  { color: "#3b82f6", glow: "rgba(59,130,246,0.4)" },
+  Interview:{ color: "#f59e0b", glow: "rgba(245,158,11,0.4)" },
+  OA:       { color: "#8b5cf6", glow: "rgba(139,92,246,0.4)" },
+  Offer:    { color: "#10b981", glow: "rgba(16,185,129,0.4)" },
+  Rejected: { color: "#ef4444", glow: "rgba(239,68,68,0.4)" },
+};
 
 export default function Dashboard() {
   const navigate = useNavigate();
-
-  const [user, setUser] = useState({});
+  const [user, setUser]               = useState({});
   const [internships, setInternships] = useState([]);
-
-  const [search, setSearch] = useState("");
+  const [search, setSearch]           = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
-  const [sortOrder, setSortOrder] = useState("newest");
+  const [sortOrder, setSortOrder]     = useState("newest");
+  const [loading, setLoading]         = useState(true);   // FIX: loading state
+  const [syncMsg, setSyncMsg]         = useState("");      // FIX: sync feedback
+
+  // Prevent autoSync running more than once per mount
+  const isSyncing = React.useRef(false);
 
   // --------------------------------------------------
-  // AUTH CHECK + FETCH
+  // AUTH CHECK → fetch → then sync extension queue
   // --------------------------------------------------
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-    fetchInternships();
+    if (!token) { navigate("/login"); return; }
+    fetchInternships().then(() => autoSyncFromExtension());
   }, [navigate]);
 
   // --------------------------------------------------
-  // FETCH INTERNSHIPS
-  // --------------------------------------------------
-  async function fetchInternships() {
-    try {
-      const token = localStorage.getItem("token");
-
-      const res = await fetch("http://localhost:5000/api/internships", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) throw new Error("Fetch failed");
-
-      const data = await res.json();
-      setInternships(data);
-    } catch (err) {
-      console.error("❌ Fetch internships failed", err);
-    }
-  }
-
-  // --------------------------------------------------
-  // 🔥 LISTEN FROM EXTENSION & SAVE TO BACKEND
-  // --------------------------------------------------
-  useEffect(() => {
-    async function handleMessage(event) {
-      if (event.data?.type !== "ADD_INTERNSHIP_DEADLINEDESK") return;
-
-      const internship = event.data.internship;
-
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          alert("Please login to DeadlineDesk first");
-          return;
-        }
-
-        const res = await fetch("http://localhost:5000/api/internships", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            company: internship.company,
-            role: internship.role,
-            status: "Applied",
-            appliedDate: internship.appliedDate,
-            deadline: internship.deadline || "",
-          }),
-        });
-
-        if (!res.ok) throw new Error("Save failed");
-
-        console.log("✅ Internship saved from extension");
-        fetchInternships(); // refresh dashboard
-      } catch (err) {
-        console.error("❌ Extension save failed", err);
-        alert("Failed to save extracted internship");
-      }
-    }
-
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, []);
-
-  // --------------------------------------------------
-  // LOAD USER
+  // LOAD USER FROM LOCALSTORAGE
   // --------------------------------------------------
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch {
-        localStorage.removeItem("user");
-      }
+      try { setUser(JSON.parse(storedUser)); }
+      catch { localStorage.removeItem("user"); }
     }
   }, []);
+
+  // --------------------------------------------------
+  // FETCH INTERNSHIPS — with expired token check
+  // --------------------------------------------------
+  async function fetchInternships() {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:5000/api/internships", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // FIX: expired / invalid token → logout
+      if (res.status === 401) {
+        localStorage.clear();
+        navigate("/login");
+        return;
+      }
+
+      if (!res.ok) throw new Error("Fetch failed");
+      const data = await res.json();
+      setInternships(data);
+    } catch (err) {
+      console.error("❌ Fetch internships failed", err);
+    } finally {
+      setLoading(false); // FIX: stop loading spinner
+    }
+  }
+
+  // --------------------------------------------------
+  // AUTO SYNC FROM EXTENSION — safe, no data loss
+  // --------------------------------------------------
+  async function autoSyncFromExtension() {
+    if (isSyncing.current) return;
+    if (!window.chrome?.runtime) return;
+
+    isSyncing.current = true;
+
+    chrome.runtime.sendMessage(EXTENSION_ID, { type: "GET_PENDING" }, async (response) => {
+      if (chrome.runtime.lastError) { isSyncing.current = false; return; }
+
+      const items = response?.data || [];
+      if (items.length === 0) { isSyncing.current = false; return; }
+
+      const token = localStorage.getItem("token");
+
+      // FIX: check token before syncing
+      if (!token) { isSyncing.current = false; return; }
+
+      // Fetch current DB state to check duplicates client-side
+      let existing = [];
+      try {
+        const res = await fetch("http://localhost:5000/api/internships", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.status === 401) {
+          localStorage.clear();
+          navigate("/login");
+          isSyncing.current = false;
+          return;
+        }
+        if (res.ok) existing = await res.json();
+      } catch (_) {}
+
+      // Build Set of existing keys to skip duplicates
+      const existingKeys = new Set(
+        existing.map((e) =>
+          `${e.company.toLowerCase().trim()}|${e.role.toLowerCase().trim()}|${e.appliedDate}`
+        )
+      );
+
+      const savedIndexes = [];   // track which items succeeded
+      const failedIndexes = [];  // track which items failed
+
+      for (let i = 0; i < items.length; i++) {
+        const internship = items[i];
+        const key = `${internship.company.toLowerCase().trim()}|${internship.role.toLowerCase().trim()}|${internship.appliedDate}`;
+
+        // FIX: skip duplicates without counting as failure
+        if (existingKeys.has(key)) {
+          savedIndexes.push(i);
+          continue;
+        }
+
+        try {
+          const res = await fetch("http://localhost:5000/api/internships", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(internship),
+          });
+
+          // FIX: 409 = duplicate on backend too, treat as success
+          if (res.ok || res.status === 409) {
+            savedIndexes.push(i);
+          } else {
+            failedIndexes.push(i);
+          }
+        } catch (_) {
+          failedIndexes.push(i);
+        }
+      }
+
+      const newlySaved = savedIndexes.length - (items.length - items.filter((_, i) => {
+        const k = `${items[i].company.toLowerCase().trim()}|${items[i].role.toLowerCase().trim()}|${items[i].appliedDate}`;
+        return existingKeys.has(k);
+      }).length);
+
+      if (failedIndexes.length === 0) {
+        // FIX: all saved — clear entire queue
+        chrome.runtime.sendMessage(EXTENSION_ID, { type: "CLEAR_PENDING" }, () => {
+          isSyncing.current = false;
+          if (savedIndexes.length > 0) {
+            setSyncMsg(`✅ ${savedIndexes.length} internship(s) synced from extension`);
+            setTimeout(() => setSyncMsg(""), 4000);
+            fetchInternships();
+          }
+        });
+      } else {
+        // FIX: partial save — keep only failed items in queue
+        const remaining = items.filter((_, i) => failedIndexes.includes(i));
+        chrome.storage.local.set({ pendingInternships: remaining }, () => {
+          isSyncing.current = false;
+          if (savedIndexes.length > 0) {
+            setSyncMsg(`⚠️ ${savedIndexes.length} synced, ${failedIndexes.length} failed — will retry next time`);
+            setTimeout(() => setSyncMsg(""), 5000);
+            fetchInternships();
+          }
+        });
+      }
+    });
+  }
 
   // --------------------------------------------------
   // DELETE
   // --------------------------------------------------
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this internship?")) return;
-
     try {
       const token = localStorage.getItem("token");
-      await fetch(`http://localhost:5000/api/internships/${id}`, {
+      const res = await fetch(`http://localhost:5000/api/internships/${id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      setInternships((prev) => prev.filter((i) => i._id !== id));
+      if (res.status === 401) {
+        localStorage.clear();
+        navigate("/login");
+        return;
+      }
+
+      if (res.ok) {
+        setInternships((prev) => prev.filter((item) => item._id !== id));
+      }
     } catch (err) {
       console.error("Delete failed", err);
     }
@@ -430,46 +527,29 @@ export default function Dashboard() {
   // --------------------------------------------------
   // EDIT
   // --------------------------------------------------
-  const handleEdit = (id) => {
-    navigate(`/edit/${id}`);
-  };
+  const handleEdit = (id) => { navigate(`/edit/${id}`); };
 
   // --------------------------------------------------
   // SUMMARY
   // --------------------------------------------------
   const summary = internships.reduce(
-    (acc, item) => {
-      acc[item.status] = (acc[item.status] || 0) + 1;
-      return acc;
-    },
+    (acc, item) => { acc[item.status] = (acc[item.status] || 0) + 1; return acc; },
     { Applied: 0, Interview: 0, OA: 0, Offer: 0, Rejected: 0 }
   );
-
-  const statusColors = {
-    Applied: "bg-blue-500",
-    Interview: "bg-yellow-500",
-    OA: "bg-indigo-500",
-    Offer: "bg-green-500",
-    Rejected: "bg-red-500",
-  };
 
   // --------------------------------------------------
   // FILTER + SORT
   // --------------------------------------------------
   const filteredInternships = internships
-    .filter((i) => {
-      if (filterStatus !== "All" && i.status !== filterStatus) return false;
-      if (
-        search &&
-        !i.company.toLowerCase().includes(search.toLowerCase()) &&
-        !i.role.toLowerCase().includes(search.toLowerCase())
-      )
-        return false;
+    .filter((item) => {
+      if (filterStatus !== "All" && item.status !== filterStatus) return false;
+      if (search &&
+        !item.company.toLowerCase().includes(search.toLowerCase()) &&
+        !item.role.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     })
     .sort((a, b) => {
-      const da = new Date(a.appliedDate);
-      const db = new Date(b.appliedDate);
+      const da = new Date(a.appliedDate), db = new Date(b.appliedDate);
       return sortOrder === "newest" ? db - da : da - db;
     });
 
@@ -477,116 +557,116 @@ export default function Dashboard() {
   // UI
   // --------------------------------------------------
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
+    <>
+      <style>{styles}</style>
+      <div className="dash-root">
+        <Sidebar />
+        <div className="dash-main-wrap">
+          <Navbar />
+          <main className="dash-main">
+            <div className="dash-bg-orb d-orb1" />
+            <div className="dash-bg-orb d-orb2" />
+            <div className="dash-content">
 
-      <div className="flex-1 flex flex-col">
-        <Navbar />
+              {/* Header */}
+              <div className="dash-header">
+                <h1 className="dash-greeting">
+                  Hey, <span>{user.name || "User"}</span> 👋
+                </h1>
+                <p className="dash-subtext">
+                  {internships.length} applications tracked · Stay on top of your journey
+                </p>
+              </div>
 
-        <div className="p-6 bg-gray-100 flex-1">
-          <h1 className="text-3xl font-semibold mb-6">
-            Welcome, {user.name || "User"}
-          </h1>
+              {/* Sync toast */}
+              {syncMsg && (
+                <div className="dash-sync-toast">
+                  {syncMsg}
+                </div>
+              )}
 
-          {/* Summary */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-            {Object.keys(summary).map((status) => (
-              <DashboardCard
-                key={status}
-                title={status}
-                count={summary[status]}
-                color={statusColors[status]}
-              />
-            ))}
-          </div>
+              {/* Stats */}
+              <div className="dash-stats">
+                {Object.keys(summary).map((status) => (
+                  <div className="stat-card" key={status}>
+                    <div className="stat-card-glow" style={{ background: statConfig[status]?.glow }} />
+                    <div className="stat-label">{status}</div>
+                    <div className="stat-count" style={{ color: statConfig[status]?.color }}>
+                      {summary[status]}
+                    </div>
+                  </div>
+                ))}
+              </div>
 
-          {/* Filters */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6 bg-white p-4 shadow rounded-lg">
-            <input
-              type="text"
-              placeholder="Search company or role"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="p-3 border rounded-md flex-1"
-            />
-
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="p-3 border rounded-md"
-            >
-              <option value="All">All</option>
-              {Object.keys(summary).map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
-              className="p-3 border rounded-md"
-            >
-              <option value="newest">Newest</option>
-              <option value="oldest">Oldest</option>
-            </select>
-          </div>
-
-          {/* Table */}
-          {filteredInternships.length === 0 ? (
-            <div className="bg-white p-6 rounded shadow text-center">
-              No internships found.
-            </div>
-          ) : (
-            <div className="bg-white shadow rounded overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-200">
-                  <tr>
-                    <th className="p-3">Company</th>
-                    <th className="p-3">Role</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3">Applied</th>
-                    <th className="p-3">Deadline</th>
-                    <th className="p-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredInternships.map((item) => (
-                    <tr key={item._id} className="border-b">
-                      <td className="p-3">{item.company}</td>
-                      <td className="p-3">{item.role}</td>
-                      <td className="p-3">
-                        <span
-                          className={`px-2 py-1 text-xs text-white rounded ${statusColors[item.status]}`}
-                        >
-                          {item.status}
-                        </span>
-                      </td>
-                      <td className="p-3">{item.appliedDate}</td>
-                      <td className="p-3">{item.deadline || "-"}</td>
-                      <td className="p-3 flex gap-2">
-                        <button
-                          onClick={() => handleEdit(item._id)}
-                          className="bg-yellow-500 text-white px-3 py-1 text-xs rounded"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item._id)}
-                          className="bg-red-500 text-white px-3 py-1 text-xs rounded"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
+              {/* Filters */}
+              <div className="dash-filters">
+                <input type="text" placeholder="🔍  Search company or role..."
+                  value={search} onChange={(e) => setSearch(e.target.value)} className="dash-search" />
+                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="dash-select">
+                  <option value="All">All Status</option>
+                  {Object.keys(summary).map((s) => (
+                    <option key={s} value={s}>{s}</option>
                   ))}
-                </tbody>
-              </table>
+                </select>
+                <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} className="dash-select">
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                </select>
+              </div>
+
+              {/* Loading / Table / Empty */}
+              {loading ? (
+                <div className="dash-loading">
+                  <div className="dash-spinner" />
+                  Loading your applications...
+                </div>
+              ) : filteredInternships.length === 0 ? (
+                <div className="dash-empty">
+                  <div className="dash-empty-icon">🚀</div>
+                  <div className="dash-empty-title">No internships yet</div>
+                  <div className="dash-empty-sub">Start tracking your applications and stay organized.</div>
+                </div>
+              ) : (
+                <div className="dash-table-wrap">
+                  <table className="dash-table">
+                    <thead>
+                      <tr>
+                        <th>Company</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Applied</th>
+                        <th>Deadline</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredInternships.map((item, i) => (
+                        <tr key={item._id} style={{ animationDelay: `${i * 40}ms` }}>
+                          <td className="td-company">{item.company}</td>
+                          <td>{item.role}</td>
+                          <td>
+                            <span className={`status-badge status-${item.status}`}>
+                              <span className="status-dot" />
+                              {item.status}
+                            </span>
+                          </td>
+                          <td>{item.appliedDate}</td>
+                          <td>{item.deadline || "—"}</td>
+                          <td>
+                            <button onClick={() => handleEdit(item._id)} className="btn-edit">Edit</button>
+                            <button onClick={() => handleDelete(item._id)} className="btn-delete">Delete</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
             </div>
-          )}
+          </main>
         </div>
       </div>
-    </div>
+    </>
   );
 }
