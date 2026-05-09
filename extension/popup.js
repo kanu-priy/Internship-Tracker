@@ -300,8 +300,22 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ── Open dashboard ────────────────────────────────────────────────────────
-  const openDash = () => chrome.tabs.create({ url: "http://localhost:3000/dashboard" });
-  document.getElementById("openDashboard").addEventListener("click",  openDash);
-  document.getElementById("openDashboard2").addEventListener("click", openDash);
+  // const openDash = () => chrome.tabs.create({ url: "http://localhost:3000/dashboard" });
+  // document.getElementById("openDashboard").addEventListener("click",  openDash);
+  // document.getElementById("openDashboard2").addEventListener("click", openDash);
+   const openDash = () => {
+  chrome.tabs.query({ url: "http://localhost:3000/*" }, (tabs) => {
+    if (tabs.length > 0) {
+      // Dashboard already open — reload it so autoSync fires
+      chrome.tabs.reload(tabs[0].id);
+      chrome.tabs.update(tabs[0].id, { active: true });
+    } else {
+      // Not open — open fresh tab
+      chrome.tabs.create({ url: "http://localhost:3000/dashboard" });
+    }
+  });
+};
 
+document.getElementById("openDashboard").addEventListener("click",  openDash);
+document.getElementById("openDashboard2").addEventListener("click", openDash);
 });

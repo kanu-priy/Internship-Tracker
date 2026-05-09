@@ -1,5 +1,5 @@
-﻿/* global chrome */
-import React, { useEffect, useState } from "react";
+/* global chrome */
+import React, { useEffect, useState, useCallback } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { useNavigate } from "react-router-dom";
@@ -44,7 +44,6 @@ const styles = `
 
   .dash-content { position: relative; z-index: 1; }
 
-  /* Header */
   .dash-header { margin-bottom: 36px; }
 
   .dash-greeting {
@@ -63,7 +62,6 @@ const styles = `
     color: rgba(255,255,255,0.38);
   }
 
-  /* Stats */
   .dash-stats {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -117,7 +115,6 @@ const styles = `
     line-height: 1;
   }
 
-  /* Loading */
   .dash-loading {
     display: flex;
     align-items: center;
@@ -139,7 +136,6 @@ const styles = `
 
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* Sync toast */
   .dash-sync-toast {
     display: inline-flex;
     align-items: center;
@@ -156,7 +152,6 @@ const styles = `
 
   @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
-  /* Filters */
   .dash-filters {
     display: flex;
     flex-wrap: wrap;
@@ -199,7 +194,6 @@ const styles = `
   .dash-select option { background: #1a1a2e; color: #fff; }
   .dash-select:focus { border-color: rgba(245,158,11,0.4); }
 
-  /* Table */
   .dash-table-wrap {
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.07);
@@ -334,28 +328,23 @@ const statConfig = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [user, setUser]               = useState({});
-  const [internships, setInternships] = useState([]);
-  const [search, setSearch]           = useState("");
+  const [user, setUser]                 = useState({});
+  const [internships, setInternships]   = useState([]);
+  const [search, setSearch]             = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
-  const [sortOrder, setSortOrder]     = useState("newest");
-  const [loading, setLoading]         = useState(true);   // FIX: loading state
-  const [syncMsg, setSyncMsg]         = useState("");      // FIX: sync feedback
+  const [sortOrder, setSortOrder]       = useState("newest");
+  const [loading, setLoading]           = useState(true);
+  const [syncMsg, setSyncMsg]           = useState("");
 
-  // Prevent autoSync running more than once per mount
   const isSyncing = React.useRef(false);
 
   // --------------------------------------------------
-  // AUTH CHECK → fetch → then sync extension queue
+  // AUTH CHECK → fetch → sync extension queue
   // --------------------------------------------------
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) { navigate("/login"); return; }
-    fetchInternships().then(() => autoSyncFromExtension());
-  }, [navigate]);
+
 
   // --------------------------------------------------
-  // LOAD USER FROM LOCALSTORAGE
+  // LOAD USER
   // --------------------------------------------------
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -366,82 +355,117 @@ export default function Dashboard() {
   }, []);
 
   // --------------------------------------------------
-  // FETCH INTERNSHIPS — with expired token check
+  // FETCH INTERNSHIPS
+  // ✅ ONE function only — fetches DB + syncs to extension
   // --------------------------------------------------
-  async function fetchInternships() {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5000/api/internships", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+ const fetchInternships = useCallback(async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const res = await fetch("http://localhost:5000/api/internships", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-      // FIX: expired / invalid token → logout
-      if (res.status === 401) {
-        localStorage.clear();
-        navigate("/login");
-        return;
-      }
-
-      if (!res.ok) throw new Error("Fetch failed");
-      const data = await res.json();
-      setInternships(data);
-    } catch (err) {
-      console.error("❌ Fetch internships failed", err);
-    } finally {
-      setLoading(false); // FIX: stop loading spinner
+    if (res.status === 401) {
+      localStorage.clear();
+      navigate("/login");
+      return;
     }
+
+    if (!res.ok) throw new Error("Fetch failed");
+
+    const data = await res.json();
+    setInternships(data);
+
+    if (window.chrome?.runtime) {
+      chrome.runtime.sendMessage(
+        EXTENSION_ID,
+        {
+          type: "SYNC_SAVED",
+          items: data.map((i) => ({
+            company: i.company,
+            role: i.role,
+            status: i.status,
+            appliedDate: i.appliedDate,
+            deadline: i.deadline || "",
+            savedAt: i.createdAt || new Date().toISOString(),
+          })),
+        },
+        () => {
+          if (chrome.runtime.lastError) return;
+        }
+      );
+    }
+  } catch (err) {
+    console.error("❌ Fetch internships failed", err);
+  } finally {
+    setLoading(false);
   }
+}, [navigate]);
 
   // --------------------------------------------------
   // AUTO SYNC FROM EXTENSION — safe, no data loss
   // --------------------------------------------------
-  async function autoSyncFromExtension() {
-    if (isSyncing.current) return;
-    if (!window.chrome?.runtime) return;
+  const autoSyncFromExtension = useCallback(async () => {
+  if (isSyncing.current) return;
+  if (!window.chrome?.runtime) return;
 
-    isSyncing.current = true;
+  isSyncing.current = true;
 
-    chrome.runtime.sendMessage(EXTENSION_ID, { type: "GET_PENDING" }, async (response) => {
-      if (chrome.runtime.lastError) { isSyncing.current = false; return; }
+  chrome.runtime.sendMessage(
+    EXTENSION_ID,
+    { type: "GET_PENDING" },
+    async (response) => {
+      if (chrome.runtime.lastError) {
+        isSyncing.current = false;
+        return;
+      }
 
       const items = response?.data || [];
-      if (items.length === 0) { isSyncing.current = false; return; }
+      if (items.length === 0) {
+        isSyncing.current = false;
+        return;
+      }
 
       const token = localStorage.getItem("token");
+      if (!token) {
+        isSyncing.current = false;
+        return;
+      }
 
-      // FIX: check token before syncing
-      if (!token) { isSyncing.current = false; return; }
-
-      // Fetch current DB state to check duplicates client-side
       let existing = [];
       try {
         const res = await fetch("http://localhost:5000/api/internships", {
           headers: { Authorization: `Bearer ${token}` },
         });
+
         if (res.status === 401) {
           localStorage.clear();
           navigate("/login");
           isSyncing.current = false;
           return;
         }
+
         if (res.ok) existing = await res.json();
       } catch (_) {}
 
-      // Build Set of existing keys to skip duplicates
       const existingKeys = new Set(
-        existing.map((e) =>
-          `${e.company.toLowerCase().trim()}|${e.role.toLowerCase().trim()}|${e.appliedDate}`
+        existing.map(
+          (e) =>
+            `${e.company.toLowerCase().trim()}|${e.role
+              .toLowerCase()
+              .trim()}|${e.appliedDate}`
         )
       );
 
-      const savedIndexes = [];   // track which items succeeded
-      const failedIndexes = [];  // track which items failed
+      const savedIndexes = [];
+      const failedIndexes = [];
 
       for (let i = 0; i < items.length; i++) {
         const internship = items[i];
-        const key = `${internship.company.toLowerCase().trim()}|${internship.role.toLowerCase().trim()}|${internship.appliedDate}`;
+        const key = `${internship.company.toLowerCase().trim()}|${internship.role
+          .toLowerCase()
+          .trim()}|${internship.appliedDate}`;
 
-        // FIX: skip duplicates without counting as failure
         if (existingKeys.has(key)) {
           savedIndexes.push(i);
           continue;
@@ -457,7 +481,6 @@ export default function Dashboard() {
             body: JSON.stringify(internship),
           });
 
-          // FIX: 409 = duplicate on backend too, treat as success
           if (res.ok || res.status === 409) {
             savedIndexes.push(i);
           } else {
@@ -468,81 +491,38 @@ export default function Dashboard() {
         }
       }
 
-      const newlySaved = savedIndexes.length - (items.length - items.filter((_, i) => {
-        const k = `${items[i].company.toLowerCase().trim()}|${items[i].role.toLowerCase().trim()}|${items[i].appliedDate}`;
-        return existingKeys.has(k);
-      }).length);
-
       if (failedIndexes.length === 0) {
-        // FIX: all saved — clear entire queue
-        chrome.runtime.sendMessage(EXTENSION_ID, { type: "CLEAR_PENDING" }, () => {
-          isSyncing.current = false;
-          if (savedIndexes.length > 0) {
-            setSyncMsg(`✅ ${savedIndexes.length} internship(s) synced from extension`);
-            setTimeout(() => setSyncMsg(""), 4000);
-            fetchInternships();
+        chrome.runtime.sendMessage(
+          EXTENSION_ID,
+          { type: "CLEAR_PENDING" },
+          () => {
+            isSyncing.current = false;
+
+            if (savedIndexes.length > 0) {
+              setSyncMsg(
+                `✅ ${savedIndexes.length} internship(s) synced from extension`
+              );
+              setTimeout(() => setSyncMsg(""), 4000);
+              fetchInternships();
+            }
           }
-        });
-      } else {
-        // FIX: partial save — keep only failed items in queue
-        const remaining = items.filter((_, i) => failedIndexes.includes(i));
-        chrome.storage.local.set({ pendingInternships: remaining }, () => {
-          isSyncing.current = false;
-          if (savedIndexes.length > 0) {
-            setSyncMsg(`⚠️ ${savedIndexes.length} synced, ${failedIndexes.length} failed — will retry next time`);
-            setTimeout(() => setSyncMsg(""), 5000);
-            fetchInternships();
-          }
-        });
+        );
       }
-    });
+    }
+  );
+}, [navigate, fetchInternships]);
+
+useEffect(() => {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    navigate("/login");
+    return;
   }
 
-   async function fetchInternships() {
-  try {
-    const token = localStorage.getItem("token");
-    const res = await fetch("http://localhost:5000/api/internships", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  fetchInternships().then(() => autoSyncFromExtension());
+}, [navigate, fetchInternships, autoSyncFromExtension]);
 
-    if (res.status === 401) {
-      localStorage.clear();
-      navigate("/login");
-      return;
-    }
-
-    if (!res.ok) throw new Error("Fetch failed");
-    const data = await res.json();
-    setInternships(data);
-
-    // ✅ FIX: push all DB internships back to extension storage
-    // so alarms + highlighter always have up-to-date data
-    if (window.chrome?.runtime) {
-      chrome.runtime.sendMessage(
-        EXTENSION_ID,
-        {
-          type: "SYNC_SAVED",
-          items: data.map((i) => ({
-            company:     i.company,
-            role:        i.role,
-            status:      i.status,
-            appliedDate: i.appliedDate,
-            deadline:    i.deadline || "",
-            savedAt:     i.createdAt || new Date().toISOString(),
-          })),
-        },
-        (response) => {
-          if (chrome.runtime.lastError) return; // extension not connected, skip
-        }
-      );
-    }
-
-  } catch (err) {
-    console.error("❌ Fetch internships failed", err);
-  } finally {
-    setLoading(false);
-  }
-}
   // --------------------------------------------------
   // DELETE
   // --------------------------------------------------
@@ -563,6 +543,7 @@ export default function Dashboard() {
 
       if (res.ok) {
         setInternships((prev) => prev.filter((item) => item._id !== id));
+        fetchInternships(); // re-sync extension after delete
       }
     } catch (err) {
       console.error("Delete failed", err);
@@ -598,9 +579,6 @@ export default function Dashboard() {
       return sortOrder === "newest" ? db - da : da - db;
     });
 
-  // --------------------------------------------------
-  // UI
-  // --------------------------------------------------
   return (
     <>
       <style>{styles}</style>
@@ -613,7 +591,6 @@ export default function Dashboard() {
             <div className="dash-bg-orb d-orb2" />
             <div className="dash-content">
 
-              {/* Header */}
               <div className="dash-header">
                 <h1 className="dash-greeting">
                   Hey, <span>{user.name || "User"}</span> 👋
@@ -623,14 +600,8 @@ export default function Dashboard() {
                 </p>
               </div>
 
-              {/* Sync toast */}
-              {syncMsg && (
-                <div className="dash-sync-toast">
-                  {syncMsg}
-                </div>
-              )}
+              {syncMsg && <div className="dash-sync-toast">{syncMsg}</div>}
 
-              {/* Stats */}
               <div className="dash-stats">
                 {Object.keys(summary).map((status) => (
                   <div className="stat-card" key={status}>
@@ -643,7 +614,6 @@ export default function Dashboard() {
                 ))}
               </div>
 
-              {/* Filters */}
               <div className="dash-filters">
                 <input type="text" placeholder="🔍  Search company or role..."
                   value={search} onChange={(e) => setSearch(e.target.value)} className="dash-search" />
@@ -659,7 +629,6 @@ export default function Dashboard() {
                 </select>
               </div>
 
-              {/* Loading / Table / Empty */}
               {loading ? (
                 <div className="dash-loading">
                   <div className="dash-spinner" />

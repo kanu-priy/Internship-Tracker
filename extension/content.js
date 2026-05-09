@@ -62,12 +62,40 @@
     }
 
     if (isInternshala) {
-      role    = document.querySelector(".heading_4_5, .internship_heading h1, h1")?.innerText?.trim() || "";
-      company = document.querySelector(".company_name a, .company_name")?.innerText?.trim()           || "";
-    }
-
-    return { company, role };
+  // Role — try multiple selectors
+  for (const sel of [
+    ".heading_4_5",
+    ".internship_heading h1",
+    ".profile h1",
+    ".internship-heading h1",
+    "h1",
+  ]) {
+    const t = document.querySelector(sel)?.innerText?.trim();
+    if (t && t.length > 1 && t.length < 200) { role = t; break; }
   }
+
+  // Company — try multiple selectors
+  for (const sel of [
+    ".company_name a",
+    ".company_name",
+    ".company-name a",
+    ".company-name",
+    ".internship_header .company",
+    "a.link_display_like_text",
+  ]) {
+    const t = document.querySelector(sel)?.innerText?.trim();
+    if (t && t.length > 1 && t.length < 200) { company = t; break; }
+  }
+
+  // Fallback — log what's available
+  if (!company || !role) {
+    console.log("DeadlineDesk debug:", {
+      h1: document.querySelector("h1")?.innerText,
+      allCompanyEls: [...document.querySelectorAll("[class*='company']")].map(e => ({ class: e.className, text: e.innerText?.trim() }))
+    });
+  }
+}
+}
 
   // ── Feature A — "Track This" floating button ──────────────────────────────
   let trackBtn    = null;
