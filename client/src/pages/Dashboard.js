@@ -700,36 +700,42 @@ export default function Dashboard() {
       const failedIndexes = [];
 
       for (let i = 0; i < items.length; i++) {
-        const internship = items[i];
-        const key = `${internship.company.toLowerCase().trim()}|${internship.role
-          .toLowerCase()
-          .trim()}|${internship.appliedDate}`;
+  const internship = items[i];
 
-        if (existingKeys.has(key)) {
-          savedIndexes.push(i);
-          continue;
-        }
+  // skip broken entries
+  if (!internship.company?.trim() || !internship.role?.trim()) {
+    console.log("Skipping invalid internship:", internship);
+    continue;
+  }
 
-        try {
-          const res = await fetch("http://localhost:5000/api/internships", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(internship),
-          });
+  const key = `${internship.company.toLowerCase().trim()}|${internship.role
+    .toLowerCase()
+    .trim()}|${internship.appliedDate}`;
 
-          if (res.ok || res.status === 409) {
-            savedIndexes.push(i);
-          } else {
-            failedIndexes.push(i);
-          }
-        } catch (_) {
-          failedIndexes.push(i);
-        }
-      }
+  if (existingKeys.has(key)) {
+    savedIndexes.push(i);
+    continue;
+  }
 
+  try {
+    const res = await fetch("http://localhost:5000/api/internships", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(internship),
+    });
+
+    if (res.ok || res.status === 409) {
+      savedIndexes.push(i);
+    } else {
+      failedIndexes.push(i);
+    }
+  } catch (_) {
+    failedIndexes.push(i);
+  }
+}
       if (failedIndexes.length === 0) {
         chrome.runtime.sendMessage(
           EXTENSION_ID,
