@@ -105,6 +105,7 @@ app.post("/api/internships", async (req, res) => {
       status: req.body.status || "Applied",
       appliedDate: req.body.appliedDate || new Date().toISOString().slice(0, 10),
       deadline: req.body.deadline || "",
+      notes: req.body.notes || "", 
     });
 
     await internship.save();
@@ -144,23 +145,26 @@ app.get("/api/internships/:id", async (req, res) => {
 });
 
 // ----------------- UPDATE INTERNSHIP -----------------
+// ----------------- UPDATE INTERNSHIP -----------------
 app.put("/api/internships/:id", async (req, res) => {
   try {
     const payload = verifyToken(req);
 
     const internship = await Internship.findById(req.params.id);
     if (!internship) return res.status(404).json({ message: "Not found" });
+
     if (internship.userId.toString() !== payload.id)
       return res.status(403).json({ message: "Not authorized" });
-
+    console.log("BODY RECEIVED:", req.body);
     const updated = await Internship.findByIdAndUpdate(
       req.params.id,
       {
-        company: req.body.company?.trim(),
-        role: req.body.role?.trim(),
-        status: req.body.status,
-        appliedDate: req.body.appliedDate,
-        deadline: req.body.deadline || "",
+        company: req.body.company?.trim() || internship.company,
+        role: req.body.role?.trim() || internship.role,
+        status: req.body.status || internship.status,
+        appliedDate: req.body.appliedDate || internship.appliedDate,
+        deadline: req.body.deadline ?? internship.deadline,
+        notes: req.body.notes ?? internship.notes,   // ⭐ ADD THIS
       },
       { new: true }
     );

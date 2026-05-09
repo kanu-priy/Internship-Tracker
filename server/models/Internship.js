@@ -1,29 +1,27 @@
-// const mongoose = require("mongoose");
 
-// const InternshipSchema = new mongoose.Schema({
-//   userId: String,
-//   jobTitle: String,
-//   company: String,
-//   location: String,
-//   savedAt: { type: Date, default: Date.now }
-// });
-
-// module.exports = mongoose.model("Internship", InternshipSchema);
 // const mongoose = require("mongoose");
 
 // const InternshipSchema = new mongoose.Schema(
 //   {
-//     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+//     userId: {
+//       type: mongoose.Schema.Types.ObjectId,
+//       ref: "User",
+//       required: true,
+//     },
 //     company: String,
 //     role: String,
+//     status: {
+//       type: String,
+//       default: "Applied",
+//     },
 //     appliedDate: String,
 //     deadline: String,
-//     status: { type: String, default: "Applied" },
 //   },
 //   { timestamps: true }
 // );
 
 // module.exports = mongoose.model("Internship", InternshipSchema);
+
 const mongoose = require("mongoose");
 
 const InternshipSchema = new mongoose.Schema(
@@ -33,17 +31,15 @@ const InternshipSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    company: String,
-    role: String,
-    status: {
-      type: String,
-      default: "Applied",
-    },
+    company:     String,
+    role:        String,
+    status:      { type: String, default: "Applied" },
     appliedDate: String,
-    deadline: String,
+    deadline:    String,
+    // ── NEW: freeform notes / remarks ──────────────────────────────────────
+    notes:       { type: String, default: "" },
   },
   { timestamps: true }
 );
 
 module.exports = mongoose.model("Internship", InternshipSchema);
-

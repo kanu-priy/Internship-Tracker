@@ -1,11 +1,19 @@
 /* global chrome */
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef} from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { useNavigate } from "react-router-dom";
 
 const EXTENSION_ID = "hlbpahiogcemdholecbgommhgdppcfdj";
+const STATUSES = ["Applied", "Interview", "OA", "Offer", "Rejected"];
 
+const statusDotColors = {
+  Applied: "#60a5fa",
+  Interview: "#fbbf24",
+  OA: "#a78bfa",
+  Offer: "#34d399",
+  Rejected: "#f87171",
+};
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
 
@@ -195,11 +203,11 @@ const styles = `
   .dash-select:focus { border-color: rgba(245,158,11,0.4); }
 
   .dash-table-wrap {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 20px;
-    overflow: hidden;
-  }
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 20px;
+  overflow: visible;
+}
 
   .dash-table {
     width: 100%;
@@ -223,20 +231,24 @@ const styles = `
   }
 
   .dash-table tbody tr {
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    transition: background 0.15s;
-    animation: fadeRow 0.3s ease forwards;
-    opacity: 0;
-  }
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: background 0.15s;
+  animation: fadeRow 0.3s ease forwards;
+  opacity: 0;
+  position: relative;
+  overflow: visible;
+}
 
   .dash-table tbody tr:last-child { border-bottom: none; }
   .dash-table tbody tr:hover { background: rgba(255,255,255,0.03); }
 
   .dash-table td {
-    padding: 16px 20px;
-    color: rgba(255,255,255,0.75);
-    vertical-align: middle;
-  }
+  padding: 16px 20px;
+  color: rgba(255,255,255,0.75);
+  vertical-align: middle;
+  position: relative;
+  overflow: visible;
+}
 
   .td-company {
     font-family: 'Syne', sans-serif;
@@ -254,6 +266,7 @@ const styles = `
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.3px;
+    cursor: pointer;
   }
 
   .status-dot { width: 6px; height: 6px; border-radius: 50%; }
@@ -268,7 +281,126 @@ const styles = `
   .status-Offer .status-dot { background: #34d399; }
   .status-Rejected { background: rgba(239,68,68,0.12); color: #fca5a5; border: 1px solid rgba(239,68,68,0.2); }
   .status-Rejected .status-dot { background: #f87171; }
+   
 
+  .status-select-wrap {
+  position: relative;
+  display: inline-block;
+  z-index: 1;
+}
+
+.status-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 180px;
+  background: #141420;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 8px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  z-index: 999999;
+}
+
+.status-option {
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.75);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.status-option:hover {
+  background: rgba(255,255,255,0.06);
+  color: white;
+}
+
+.notes-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.72);
+  backdrop-filter: blur(6px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999999;
+}
+
+.notes-modal {
+  width: 500px;
+  background: linear-gradient(145deg, #0f1020, #13142b);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: 0 25px 70px rgba(0,0,0,0.45);
+}
+
+.notes-modal h3 {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 18px;
+}
+
+.notes-modal textarea {
+  width: 100%;
+  min-height: 180px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 18px;
+  padding: 16px;
+  color: white;
+  font-size: 14px;
+  resize: none;
+  outline: none;
+  margin-bottom: 20px;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.notes-modal textarea::placeholder {
+  color: rgba(255,255,255,0.25);
+}
+
+.notes-modal textarea:focus {
+  border-color: rgba(245,158,11,0.35);
+  box-shadow: 0 0 0 3px rgba(245,158,11,0.08);
+}
+
+.notes-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.notes-save-btn {
+  padding: 10px 18px;
+  background: rgba(245,158,11,0.15);
+  border: 1px solid rgba(245,158,11,0.25);
+  color: #fbbf24;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.notes-save-btn:hover {
+  background: rgba(245,158,11,0.22);
+}
+
+.notes-close-btn {
+  padding: 10px 18px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: white;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.notes-close-btn:hover {
+  background: rgba(255,255,255,0.07);
+}
   .btn-edit {
     padding: 7px 16px;
     background: rgba(245,158,11,0.15);
@@ -326,6 +458,113 @@ const statConfig = {
   Rejected: { color: "#ef4444", glow: "rgba(239,68,68,0.4)" },
 };
 
+
+function StatusCell({ item, onStatusChange }) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handler(e) {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false);
+      }
+    }
+
+    if (open) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  async function pick(status) {
+    if (status === item.status) {
+      setOpen(false);
+      return;
+    }
+
+    setSaving(true);
+    setOpen(false);
+
+    await onStatusChange(item._id, status);
+
+    setSaving(false);
+  }
+
+  return (
+  <div
+    ref={ref}
+    className="status-select-wrap"
+    style={{
+      zIndex: open ? 99999 : 1,
+      marginBottom: open ? "180px" : "0px",
+    }}
+  >
+      <span
+        className={`status-badge status-${item.status}`}
+        onClick={() => setOpen(!open)}
+      >
+        {saving ? "..." : item.status}
+      </span>
+
+      {open && (
+        <div className="status-dropdown">
+          {STATUSES.map((status) => (
+            <div
+  key={status}
+  className="status-option"
+  onClick={() => pick(status)}
+>
+  <span
+    style={{
+      width: "8px",
+      height: "8px",
+      borderRadius: "50%",
+      background: statusDotColors[status],
+      display: "inline-block",
+      marginRight: "10px",
+    }}
+  />
+  {status}
+</div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+//------------------NOTESMODEL---------------------------//
+function NotesModal({ item, onSave, onClose }) {
+  const [text, setText] = useState(item.notes || "");
+
+  async function handleSave() {
+  console.log("modal text:", text);
+  await onSave(item._id, text);
+  onClose();
+}
+
+  return (
+    <div className="notes-modal-overlay">
+      <div className="notes-modal">
+        <h3>Notes</h3>
+
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
+
+        <div className="notes-actions">
+  <button className="notes-save-btn" onClick={handleSave}>
+    Save
+  </button>
+
+  <button className="notes-close-btn" onClick={onClose}>
+    Close
+  </button>
+</div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [user, setUser]                 = useState({});
@@ -335,7 +574,7 @@ export default function Dashboard() {
   const [sortOrder, setSortOrder]       = useState("newest");
   const [loading, setLoading]           = useState(true);
   const [syncMsg, setSyncMsg]           = useState("");
-
+  const [notesTarget, setNotesTarget] = useState(null);
   const isSyncing = React.useRef(false);
 
   // --------------------------------------------------
@@ -554,7 +793,48 @@ useEffect(() => {
   // EDIT
   // --------------------------------------------------
   const handleEdit = (id) => { navigate(`/edit/${id}`); };
+  const handleStatusChange = async (id, status) => {
+  try {
+    const token = localStorage.getItem("token");
 
+    await fetch(`http://localhost:5000/api/internships/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ status }),
+    });
+
+    fetchInternships();
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+const handleSaveNotes = async (id, notes) => {
+  console.log("sending notes:", notes);
+
+  try {
+    const token = localStorage.getItem("token");
+
+    const res = await fetch(`http://localhost:5000/api/internships/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ notes }),
+    });
+
+    const data = await res.json();
+    console.log("response:", data);
+
+    fetchInternships();
+  } catch (err) {
+    console.error(err);
+  }
+};
   // --------------------------------------------------
   // SUMMARY
   // --------------------------------------------------
@@ -582,6 +862,13 @@ useEffect(() => {
   return (
     <>
       <style>{styles}</style>
+      {notesTarget && (
+  <NotesModal
+    item={notesTarget}
+    onSave={handleSaveNotes}
+    onClose={() => setNotesTarget(null)}
+  />
+)}
       <div className="dash-root">
         <Sidebar />
         <div className="dash-main-wrap">
@@ -604,7 +891,15 @@ useEffect(() => {
 
               <div className="dash-stats">
                 {Object.keys(summary).map((status) => (
-                  <div className="stat-card" key={status}>
+                  <div
+  className="stat-card"
+  key={status}
+  onClick={() =>
+    setFilterStatus(
+      filterStatus === status ? "All" : status
+    )
+  }
+>
                     <div className="stat-card-glow" style={{ background: statConfig[status]?.glow }} />
                     <div className="stat-label">{status}</div>
                     <div className="stat-count" style={{ color: statConfig[status]?.color }}>
@@ -650,6 +945,7 @@ useEffect(() => {
                         <th>Status</th>
                         <th>Applied</th>
                         <th>Deadline</th>
+                        <th>Notes</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
@@ -659,13 +955,21 @@ useEffect(() => {
                           <td className="td-company">{item.company}</td>
                           <td>{item.role}</td>
                           <td>
-                            <span className={`status-badge status-${item.status}`}>
-                              <span className="status-dot" />
-                              {item.status}
-                            </span>
-                          </td>
+  <StatusCell
+    item={item}
+    onStatusChange={handleStatusChange}
+  />
+</td>
                           <td>{item.appliedDate}</td>
                           <td>{item.deadline || "—"}</td>
+                          <td>
+  <button
+  onClick={() => setNotesTarget(item)}
+  className="btn-edit"
+>
+  {item.notes ? "📝 View" : "➕ Add"}
+</button>
+</td>
                           <td>
                             <button onClick={() => handleEdit(item._id)} className="btn-edit">Edit</button>
                             <button onClick={() => handleDelete(item._id)} className="btn-delete">Delete</button>
