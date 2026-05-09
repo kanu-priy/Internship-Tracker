@@ -15,14 +15,38 @@ function showToast(msg, type = "info", ms = 2600) {
 }
 
 // ── Storage helpers ───────────────────────────────────────────────────────
+// loadQueue reads savedInternships (for display in popup Queue tab)
 function loadQueue(cb) {
   chrome.storage.local.get(["savedInternships"], (r) => cb(r.savedInternships || []));
 }
 
+// saveQueue writes savedInternships (popup display) AND pendingInternships (dashboard sync)
 function saveQueue(items, cb) {
-  chrome.storage.local.set({ savedInternships: items }, () => {
-    refreshBadges(items);
-    if (cb) cb(items);
+  // ✅ FIX: always keep pendingInternships in sync with savedInternships
+  chrome.storage.local.get(["pendingInternships"], (r) => {
+    const currentPending = r.pendingInternships || [];
+
+    // Find items that are in savedInternships but not yet in pendingInternships
+    const pendingKeys = new Set(
+      currentPending.map((i) => `${i.company}|${i.role}|${i.appliedDate}`)
+    );
+
+    const newPending = [...currentPending];
+    items.forEach((item) => {
+      const key = `${item.company}|${item.role}|${item.appliedDate}`;
+      if (!pendingKeys.has(key)) {
+        newPending.push(item);
+        pendingKeys.add(key);
+      }
+    });
+
+    chrome.storage.local.set(
+      { savedInternships: items, pendingInternships: newPending },
+      () => {
+        refreshBadges(items);
+        if (cb) cb(items);
+      }
+    );
   });
 }
 
@@ -99,7 +123,16 @@ function renderQueue(items) {
     btn.addEventListener("click", () => {
       const idx = parseInt(btn.dataset.i);
       loadQueue((current) => {
-        current.splice(idx, 1);
+        const removed = current.splice(idx, 1)[0];
+
+        // ✅ FIX: also remove from pendingInternships
+        chrome.storage.local.get(["pendingInternships"], (r) => {
+          const pending = (r.pendingInternships || []).filter(
+            (p) => !(p.company === removed.company && p.role === removed.role && p.appliedDate === removed.appliedDate)
+          );
+          chrome.storage.local.set({ pendingInternships: pending });
+        });
+
         saveQueue(current, renderQueue);
         showToast("Removed", "info");
       });
@@ -207,15 +240,24 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!role)    { showToast("Enter a role / position", "error"); return; }
     if (!date)    { showToast("Select the applied date", "error"); return; }
 
-    loadQueue((items) => {
-      items.push({
+    // ✅ FIX: load BOTH keys and write to BOTH
+    chrome.storage.local.get(["savedInternships", "pendingInternships"], (result) => {
+      const saved   = result.savedInternships   || [];
+      const pending = result.pendingInternships || [];
+
+      const newItem = {
         company, role,
         status:      selectedStatus,
         appliedDate: date,
         deadline:    deadline || "",
         savedAt:     new Date().toISOString(),
-      });
-      saveQueue(items, () => {
+      };
+
+      saved.push(newItem);
+      pending.push(newItem); // ✅ dashboard reads this
+
+      chrome.storage.local.set({ savedInternships: saved, pendingInternships: pending }, () => {
+        refreshBadges(saved);
         showToast(`✅ Saved: ${role} @ ${company}`, "success");
         document.getElementById("inp-company").value  = "";
         document.getElementById("inp-role").value     = "";
@@ -224,11 +266,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // ── Clear all (uses inline confirm, not browser confirm()) ────────────────
+  // ── Clear all ────────────────────────────────────────────────────────────
   document.getElementById("clearAllBtn").addEventListener("click", () => {
     inlineConfirm("Clear all saved applications?", () => {
-      saveQueue([], (items) => {
-        renderQueue(items);
+      // ✅ FIX: clear BOTH keys
+      chrome.storage.local.set({ savedInternships: [], pendingInternships: [] }, () => {
+        refreshBadges([]);
+        renderQueue([]);
         showToast("Queue cleared", "info");
       });
     });
@@ -236,7 +280,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ── Alarm toggle ──────────────────────────────────────────────────────────
   chrome.storage.local.get(["alarmsEnabled"], (r) => {
-    // Default ON if never set
     document.getElementById("alarmToggle").checked = r.alarmsEnabled !== false;
   });
   document.getElementById("alarmToggle").addEventListener("change", (e) => {

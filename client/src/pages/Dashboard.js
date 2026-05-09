@@ -498,6 +498,51 @@ export default function Dashboard() {
     });
   }
 
+   async function fetchInternships() {
+  try {
+    const token = localStorage.getItem("token");
+    const res = await fetch("http://localhost:5000/api/internships", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (res.status === 401) {
+      localStorage.clear();
+      navigate("/login");
+      return;
+    }
+
+    if (!res.ok) throw new Error("Fetch failed");
+    const data = await res.json();
+    setInternships(data);
+
+    // ✅ FIX: push all DB internships back to extension storage
+    // so alarms + highlighter always have up-to-date data
+    if (window.chrome?.runtime) {
+      chrome.runtime.sendMessage(
+        EXTENSION_ID,
+        {
+          type: "SYNC_SAVED",
+          items: data.map((i) => ({
+            company:     i.company,
+            role:        i.role,
+            status:      i.status,
+            appliedDate: i.appliedDate,
+            deadline:    i.deadline || "",
+            savedAt:     i.createdAt || new Date().toISOString(),
+          })),
+        },
+        (response) => {
+          if (chrome.runtime.lastError) return; // extension not connected, skip
+        }
+      );
+    }
+
+  } catch (err) {
+    console.error("❌ Fetch internships failed", err);
+  } finally {
+    setLoading(false);
+  }
+}
   // --------------------------------------------------
   // DELETE
   // --------------------------------------------------
