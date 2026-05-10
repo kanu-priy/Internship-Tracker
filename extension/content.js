@@ -48,7 +48,7 @@
         }
       }
 
-      // Company — subtitle "CompanyName · Location · ..." fallback
+      // Company — subtitle fallback
       if (!company) {
         for (const sel of [
           ".job-details-jobs-unified-top-card__primary-description-without-tagline",
@@ -59,53 +59,55 @@
           if (first && first.length > 1 && first.length < 200) { company = first; break; }
         }
       }
-    }
+    } // ← closes if(isLinkedIn)
 
     if (isInternshala) {
-  // Role — try multiple selectors
-  for (const sel of [
-    ".heading_4_5",
-    ".internship_heading h1",
-    ".profile h1",
-    ".internship-heading h1",
-    "h1",
-  ]) {
-    const t = document.querySelector(sel)?.innerText?.trim();
-    if (t && t.length > 1 && t.length < 200) { role = t; break; }
-  }
+      // Role
+      for (const sel of [
+        ".heading_4_5",
+        ".internship_heading h1",
+        ".profile h1",
+        ".internship-heading h1",
+        "h1",
+      ]) {
+        const t = document.querySelector(sel)?.innerText?.trim();
+        if (t && t.length > 1 && t.length < 200) { role = t; break; }
+      }
 
-  // Company — try multiple selectors
-  for (const sel of [
-    ".company_name a",
-    ".company_name",
-    ".company-name a",
-    ".company-name",
-    ".internship_header .company",
-    "a.link_display_like_text",
-  ]) {
-    const t = document.querySelector(sel)?.innerText?.trim();
-    if (t && t.length > 1 && t.length < 200) { company = t; break; }
-  }
+      // Company
+      for (const sel of [
+        ".company_name a",
+        ".company_name",
+        ".company-name a",
+        ".company-name",
+        ".internship_header .company",
+        "a.link_display_like_text",
+      ]) {
+        const t = document.querySelector(sel)?.innerText?.trim();
+        if (t && t.length > 1 && t.length < 200) { company = t; break; }
+      }
 
-  // Fallback — log what's available
-  if (!company || !role) {
-    console.log("DeadlineDesk debug:", {
-      h1: document.querySelector("h1")?.innerText,
-      allCompanyEls: [...document.querySelectorAll("[class*='company']")].map(e => ({ class: e.className, text: e.innerText?.trim() }))
-    });
-  }
-}
-}
+      // Debug log if extraction fails
+      if (!company || !role) {
+        console.log("DeadlineDesk debug:", {
+          h1: document.querySelector("h1")?.innerText,
+          allCompanyEls: [...document.querySelectorAll("[class*='company']")]
+            .map(e => ({ class: e.className, text: e.innerText?.trim().slice(0, 50) })),
+        });
+      }
+    } // ← closes if(isInternshala)
+
+    return { company, role }; // ← always returns
+  } // ← closes extractJobInfo
 
   // ── Feature A — "Track This" floating button ──────────────────────────────
-  let trackBtn    = null;
-  let toast       = null;
-  let hideTimer   = null;
+  let trackBtn  = null;
+  let toast     = null;
+  let hideTimer = null;
 
   function injectTrackButton() {
     if (document.getElementById("dd-track-btn")) return;
 
-    // Button
     trackBtn = document.createElement("button");
     trackBtn.id = "dd-track-btn";
     trackBtn.innerHTML = `
@@ -152,7 +154,6 @@
     trackBtn.addEventListener("click", handleTrack);
     document.body.appendChild(trackBtn);
 
-    // Toast
     toast = document.createElement("div");
     toast.id = "dd-toast";
     Object.assign(toast.style, {
@@ -179,7 +180,7 @@
   }
 
   function showToast(msg, isError = false) {
-    toast.textContent      = msg;
+    toast.textContent       = msg;
     toast.style.color       = isError ? "#fca5a5" : "#6ee7b7";
     toast.style.borderColor = isError ? "rgba(248,113,113,0.4)" : "rgba(16,185,129,0.4)";
     toast.style.opacity     = "1";
@@ -199,18 +200,16 @@
       return;
     }
 
-    // Optimistic UI — turn green immediately
     trackBtn.style.background = "linear-gradient(135deg,#10b981,#059669)";
     trackBtn.innerHTML = "✅ Tracked!";
 
     chrome.runtime.sendMessage({ type: "TRACK_THIS", data: { company, role } }, (res) => {
       if (res?.success) {
         showToast(`✅ "${role || company}" saved to queue`);
-        runHighlighter(); // re-highlight immediately
+        runHighlighter();
       } else {
         showToast("❌ Save failed — try again", true);
       }
-      // Reset button after 2.5s
       setTimeout(() => {
         trackBtn.style.background = "linear-gradient(135deg,#f59e0b,#d97706)";
         trackBtn.innerHTML = `
@@ -226,7 +225,6 @@
     });
   }
 
-  // Background may also send TRACK_CONFIRMED — handle gracefully
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === "TRACK_CONFIRMED") {
       showToast(`✅ Saved: ${msg.role} @ ${msg.company}`);
@@ -266,8 +264,8 @@
     nameEl.appendChild(badge);
 
     if (cardEl) {
-      cardEl.style.borderLeft   = "3px solid rgba(16,185,129,0.55)";
-      cardEl.style.paddingLeft  = "4px";
+      cardEl.style.borderLeft  = "3px solid rgba(16,185,129,0.55)";
+      cardEl.style.paddingLeft = "4px";
     }
   }
 
@@ -290,11 +288,12 @@
 
   function highlightInternshala(applied) {
     document.querySelectorAll(".company_name, .internship_meta").forEach((el) => {
-      if (matchesApplied(el.innerText || "", applied)) markApplied(el, el.closest(".individual_internship"));
+      if (matchesApplied(el.innerText || "", applied))
+        markApplied(el, el.closest(".individual_internship"));
     });
   }
 
-  // ── Init ────────────────────────────────────────────────────────────────────
+  // ── Init ──────────────────────────────────────────────────────────────────
   function init() {
     injectTrackButton();
     runHighlighter();
