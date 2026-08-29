@@ -7,6 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import AddInternship from "./pages/AddInternship";
 import EditInternship from "./pages/EditInternship";
 import Account from "./pages/Account";
+import ResumeSetup from "./pages/ResumeSetup";
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
          {/* EDIT INTERNSHIP — IMPORTANT */}
         <Route path="/edit/:id" element={<EditInternship />} />
         <Route path="/account" element={<Account />} />
+        <Route path="/resume" element={<ResumeSetup />} />
 
       </Routes>
     </Router>

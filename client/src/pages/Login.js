@@ -3,192 +3,146 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
   .login-root {
     min-height: 100vh;
-    background: #0a0a0f;
+    background: #fafbfc;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'DM Sans', sans-serif;
-    overflow: hidden;
-    position: relative;
-  }
-
-  .login-bg-orb {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
-    pointer-events: none;
-  }
-  .orb1 { width: 500px; height: 500px; background: rgba(245,158,11,0.15); top: -100px; left: -100px; }
-  .orb2 { width: 400px; height: 400px; background: rgba(139,92,246,0.12); bottom: -80px; right: -80px; }
-  .orb3 { width: 300px; height: 300px; background: rgba(16,185,129,0.08); top: 50%; left: 50%; transform: translate(-50%,-50%); }
-
-  .login-grid {
-    position: absolute;
-    inset: 0;
-    background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-                      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-    background-size: 60px 60px;
-    pointer-events: none;
+    font-family: 'Inter', -apple-system, sans-serif;
   }
 
   .login-card {
-    position: relative;
-    z-index: 10;
     width: 100%;
-    max-width: 440px;
+    max-width: 400px;
     margin: 20px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 24px;
-    padding: 48px 44px;
-    backdrop-filter: blur(20px);
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 32px 64px rgba(0,0,0,0.5);
-    animation: slideUp 0.6s cubic-bezier(0.16,1,0.3,1) forwards;
-  }
-
-  @keyframes slideUp {
-    from { opacity: 0; transform: translateY(30px); }
-    to { opacity: 1; transform: translateY(0); }
+    background: #fff;
+    border: 1px solid #eaeaea;
+    border-radius: 12px;
+    padding: 40px;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
   }
 
   .login-logo {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 10px;
-    margin-bottom: 36px;
+    margin-bottom: 32px;
+    text-decoration: none;
   }
 
   .login-logo-icon {
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-    border-radius: 12px;
+    width: 32px;
+    height: 32px;
+    color: #0f172a;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
-    box-shadow: 0 8px 24px rgba(245,158,11,0.4);
   }
 
   .login-logo-text {
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    font-size: 20px;
-    color: #fff;
+    font-weight: 700;
+    font-size: 24px;
+    color: #111827;
     letter-spacing: -0.5px;
   }
 
   .login-logo-text span {
-    color: #f59e0b;
+    color: #0f172a;
   }
 
   .login-title {
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 28px;
-    color: #fff;
-    margin-bottom: 6px;
-    letter-spacing: -0.5px;
+    font-weight: 600;
+    font-size: 20px;
+    color: #111827;
+    margin-bottom: 8px;
+    text-align: center;
   }
 
   .login-subtitle {
     font-size: 14px;
-    color: rgba(255,255,255,0.4);
+    color: #6b7280;
     margin-bottom: 32px;
+    text-align: center;
   }
 
   .login-error {
-    background: rgba(239,68,68,0.12);
-    border: 1px solid rgba(239,68,68,0.3);
-    color: #fca5a5;
-    font-size: 13px;
+    background: #fce8e6;
+    border: 1px solid #b54d42;
+    color: #b54d42;
+    font-size: 14px;
     padding: 12px 16px;
-    border-radius: 12px;
+    border-radius: 6px;
     margin-bottom: 20px;
   }
 
   .input-group {
     margin-bottom: 16px;
-    position: relative;
   }
 
   .input-label {
     display: block;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
-    color: rgba(255,255,255,0.5);
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    margin-bottom: 8px;
+    color: #4b5563;
+    margin-bottom: 6px;
   }
 
   .login-input {
     width: 100%;
-    padding: 14px 16px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    color: #fff;
-    font-size: 15px;
-    font-family: 'DM Sans', sans-serif;
+    padding: 12px 14px;
+    background: #fff;
+    border: 1px solid #eaeaea;
+    border-radius: 8px;
+    color: #111827;
+    font-size: 14px;
+    font-family: 'Inter', -apple-system, sans-serif;
     outline: none;
     transition: all 0.2s ease;
     box-sizing: border-box;
   }
 
-  .login-input::placeholder { color: rgba(255,255,255,0.2); }
+  .login-input::placeholder { color: #9e9890; }
 
   .login-input:focus {
-    border-color: rgba(245,158,11,0.5);
-    background: rgba(245,158,11,0.05);
-    box-shadow: 0 0 0 3px rgba(245,158,11,0.1);
+    border-color: #0f172a;
+    box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1);
   }
 
   .login-btn {
     width: 100%;
-    padding: 15px;
+    padding: 12px;
     margin-top: 8px;
-    background: linear-gradient(135deg, #f59e0b, #d97706);
+    background: #0f172a;
     border: none;
-    border-radius: 12px;
-    color: #000;
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 15px;
-    letter-spacing: 0.3px;
+    border-radius: 8px;
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 8px 24px rgba(245,158,11,0.35);
-    position: relative;
-    overflow: hidden;
+    transition: background 0.2s ease;
   }
 
-  .login-btn:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 12px 32px rgba(245,158,11,0.5);
+    background: #1e293b;
   }
 
-  .login-btn:active:not(:disabled) { transform: translateY(0); }
-  .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .login-btn:disabled { opacity: 0.7; cursor: not-allowed; }
 
   .login-footer {
     text-align: center;
     margin-top: 24px;
-    font-size: 14px;
-    color: rgba(255,255,255,0.35);
+    color: #4b5563;
   }
 
   .login-footer a {
-    color: #f59e0b;
+    color: #0f172a;
     text-decoration: none;
     font-weight: 500;
-    transition: color 0.2s;
   }
-  .login-footer a:hover { color: #fbbf24; }
+  .login-footer a:hover { text-decoration: underline; }
 `;
 
 export default function Login() {
@@ -227,16 +181,17 @@ export default function Login() {
     <>
       <style>{styles}</style>
       <div className="login-root">
-        <div className="login-bg-orb orb1" />
-        <div className="login-bg-orb orb2" />
-        <div className="login-bg-orb orb3" />
-        <div className="login-grid" />
-
         <div className="login-card">
-          <div className="login-logo">
-            <div className="login-logo-icon">📋</div>
+          <Link to="/" className="login-logo">
+            <div className="login-logo-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width: '100%', height: '100%'}}>
+                <path d="M8 2h8l4 10H4L8 2Z"/>
+                <path d="M12 12v6"/>
+                <path d="M8 22v-2c0-1.1.9-2 2-2h4a2 2 0 0 1 2 2v2H8Z"/>
+              </svg>
+            </div>
             <div className="login-logo-text">Deadline<span>Desk</span></div>
-          </div>
+          </Link>
 
           <h1 className="login-title">Welcome back</h1>
           <p className="login-subtitle">Sign in to track your internship journey</p>
@@ -255,7 +210,7 @@ export default function Login() {
                 placeholder="••••••••" className="login-input" />
             </div>
             <button disabled={loading} className="login-btn" type="submit">
-              {loading ? "Signing in..." : "Sign In →"}
+              {loading ? "Signing in..." : "Sign In"}
             </button>
           </form>
 

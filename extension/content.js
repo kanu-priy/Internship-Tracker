@@ -1,5 +1,6 @@
-﻿// ── DeadlineDesk — content script ─────────────────────────────────────────
-// Feature A: "Track This" floating button on LinkedIn & Internshala
+// ── DeadlineDesk — content script v2.0 ───────────────────────────────────
+// Feature A: "Save to DeadlineDesk" floating button on LinkedIn & Internshala
+//            Now extracts: company, role, location, JD, skills, stipend, URL, source
 // Feature B: Already-Applied company highlighter (runs + watches for SPA nav)
 
 (function () {
@@ -12,35 +13,69 @@
   if (!isLinkedIn && !isInternshala) return;
 
   // ── Helpers ──────────────────────────────────────────────────────────────
+
+  function getText(selectors, doc = document) {
+    for (const sel of selectors) {
+      const elements = doc.querySelectorAll(sel);
+      for (const el of elements) {
+        const t = el.innerText?.trim();
+        if (t && t.length > 1 && t.length < 500) return t;
+      }
+    }
+    return "";
+  }
+
+  function extractSkillsFromText(text) {
+    if (!text) return [];
+    const TECH_KEYWORDS = [
+      "javascript","typescript","python","java","c++","c#","go","rust","kotlin","swift",
+      "react","vue","angular","nextjs","node.js","nodejs","express","django","flask","spring",
+      "sql","mysql","postgresql","mongodb","redis","firebase","graphql","rest","api",
+      "html","css","tailwind","sass","bootstrap","docker","kubernetes","aws","azure","gcp",
+      "git","linux","machine learning","deep learning","tensorflow","pytorch","scikit",
+      "data structures","algorithms","system design","oop","microservices",
+      "react native","flutter","android","ios","figma","redux",
+      "numpy","pandas","opencv","spark","hadoop","kafka","elasticsearch",
+      "networking","os","dbms","data science","computer vision","blockchain",
+    ];
+    const lower = text.toLowerCase();
+    return TECH_KEYWORDS.filter((kw) => lower.includes(kw));
+  }
+
+  // ── Rich job info extraction ──────────────────────────────────────────────
   function extractJobInfo() {
-    let company = "", role = "";
+    let company = "", role = "", location = "", jobDescription = "",
+        skills = [], employmentType = "", stipend = "",
+        applicationUrl = window.location.href,
+        source = isLinkedIn ? "linkedin" : "internshala";
 
     if (isLinkedIn) {
       // Role
-      for (const sel of [
+      role = getText([
         ".job-details-jobs-unified-top-card__job-title h1",
         ".jobs-unified-top-card__job-title h1",
+        ".job-details-jobs-unified-top-card__job-title",
+        ".jobs-unified-top-card__job-title",
         ".t-24.t-bold.inline",
+        "h1.t-24",
+        "h2.t-24",
         "h1",
-      ]) {
-        const t = document.querySelector(sel)?.innerText?.trim();
-        if (t && t.length > 1 && t.length < 200) { role = t; break; }
-      }
+        ".job-card-list__title",
+        ".artdeco-entity-lockup__title"
+      ]);
 
       // Company — named selectors
-      for (const sel of [
+      company = getText([
         ".job-details-jobs-unified-top-card__company-name a",
         ".job-details-jobs-unified-top-card__company-name",
         ".jobs-unified-top-card__company-name a",
         ".jobs-unified-top-card__company-name",
-        "a.app-aware-link[href*='/company/']",
         ".topcard__org-name-link",
-      ]) {
-        const t = document.querySelector(sel)?.innerText?.trim();
-        if (t && t.length > 1 && t.length < 200) { company = t; break; }
-      }
+        ".job-card-container__primary-description",
+        ".artdeco-entity-lockup__subtitle"
+      ]);
 
-      // Company — /company/ anchor scan
+      // Company — /company/ anchor scan fallback
       if (!company) {
         for (const a of document.querySelectorAll("a[href*='/company/']")) {
           const t = a.innerText?.trim();
@@ -50,42 +85,102 @@
 
       // Company — subtitle fallback
       if (!company) {
-        for (const sel of [
+        company = getText([
           ".job-details-jobs-unified-top-card__primary-description-without-tagline",
           ".job-details-jobs-unified-top-card__primary-description",
           ".jobs-unified-top-card__subtitle-primary-grouping",
-        ]) {
-          const first = document.querySelector(sel)?.innerText?.split("·")[0]?.trim();
-          if (first && first.length > 1 && first.length < 200) { company = first; break; }
+        ])?.split("·")[0]?.trim() || "";
+      }
+
+      // Title tag fallback
+      if (!role || !company) {
+        const titleParts = document.title.replace(/^\(\d+\+?\)\s*/, "").split(" | ");
+        if (titleParts.length >= 2) {
+          if (!role) role = titleParts[0].trim();
+          if (!company) company = titleParts[1].trim();
         }
       }
-    } // ← closes if(isLinkedIn)
+      
+      if (!role) role = "Unknown Role";
+      if (!company) company = "Unknown Company";
+
+      // Location
+      location = getText([
+        ".job-details-jobs-unified-top-card__primary-description-without-tagline .tvm__text",
+        ".jobs-unified-top-card__bullet",
+        ".jobs-unified-top-card__workplace-type",
+      ]);
+
+      // Employment type
+      employmentType = getText([
+        ".job-details-jobs-unified-top-card__job-insight--highlight .ui-label",
+        ".jobs-unified-top-card__workplace-type",
+      ]);
+
+      // Full Job Description text
+      const jdEl = document.querySelector(
+        ".jobs-description__content .jobs-box__html-content, " +
+        ".jobs-description-content__text, " +
+        ".jobs-description__content"
+      );
+      if (jdEl) jobDescription = jdEl.innerText?.trim()?.slice(0, 4000) || "";
+
+      // Skills from JD
+      skills = extractSkillsFromText(jobDescription);
+
+      // Also check explicit skill tags
+      document.querySelectorAll(
+        ".job-details-skill-match-status-list span, .job-details-how-you-match__skills-item-subtitle"
+      ).forEach((el) => {
+        const t = el.innerText?.trim().toLowerCase();
+        if (t && !skills.includes(t)) skills.push(t);
+      });
+    }
 
     if (isInternshala) {
       // Role
-      for (const sel of [
+      role = getText([
         ".heading_4_5",
         ".internship_heading h1",
         ".profile h1",
         ".internship-heading h1",
         "h1",
-      ]) {
-        const t = document.querySelector(sel)?.innerText?.trim();
-        if (t && t.length > 1 && t.length < 200) { role = t; break; }
-      }
+      ]);
 
       // Company
-      for (const sel of [
+      company = getText([
         ".company_name a",
         ".company_name",
         ".company-name a",
         ".company-name",
         ".internship_header .company",
         "a.link_display_like_text",
-      ]) {
-        const t = document.querySelector(sel)?.innerText?.trim();
-        if (t && t.length > 1 && t.length < 200) { company = t; break; }
-      }
+      ]);
+
+      // Location
+      location = getText([
+        ".location_link",
+        ".other_detail_item .item_body.basic_info_txt:first-of-type",
+        ".internship_other_details_container .location",
+      ]);
+
+      // Stipend
+      stipend = getText([
+        ".stipend_container .stipend",
+        "#stipend",
+        ".stipend",
+      ]);
+
+      // Employment type
+      employmentType = "Internship";
+
+      // Full JD
+      const jdEl = document.querySelector(
+        "#internship_description, .internship-details, .about_internship"
+      );
+      if (jdEl) jobDescription = jdEl.innerText?.trim()?.slice(0, 4000) || "";
+
+      skills = extractSkillsFromText(jobDescription);
 
       // Debug log if extraction fails
       if (!company || !role) {
@@ -95,12 +190,12 @@
             .map(e => ({ class: e.className, text: e.innerText?.trim().slice(0, 50) })),
         });
       }
-    } // ← closes if(isInternshala)
+    }
 
-    return { company, role }; // ← always returns
-  } // ← closes extractJobInfo
+    return { company, role, location, jobDescription, skills, employmentType, stipend, applicationUrl, source };
+  }
 
-  // ── Feature A — "Track This" floating button ──────────────────────────────
+  // ── Feature A — "Save to DeadlineDesk" floating button ──────────────────
   let trackBtn  = null;
   let toast     = null;
   let hideTimer = null;
@@ -118,7 +213,7 @@
         <line x1="12" y1="8" x2="12" y2="16"/>
         <line x1="8" y1="12" x2="16" y2="12"/>
       </svg>
-      Track This`;
+      Save to DeadlineDesk`;
 
     Object.assign(trackBtn.style, {
       position:      "fixed",
@@ -129,26 +224,26 @@
       alignItems:    "center",
       gap:           "7px",
       padding:       "10px 20px",
-      background:    "linear-gradient(135deg,#f59e0b,#d97706)",
-      border:        "none",
+      background:    "#0f172a",
+      border:        "1px solid rgba(255,255,255,0.1)",
       borderRadius:  "30px",
-      color:         "#000",
-      fontFamily:    "'DM Sans',system-ui,sans-serif",
-      fontWeight:    "700",
+      color:         "#ffffff",
+      fontFamily:    "'Inter', -apple-system, sans-serif",
+      fontWeight:    "600",
       fontSize:      "13px",
       cursor:        "pointer",
-      boxShadow:     "0 6px 24px rgba(245,158,11,0.55),0 2px 8px rgba(0,0,0,0.3)",
-      transition:    "transform .15s,box-shadow .2s",
+      boxShadow:     "0 4px 12px rgba(0,0,0,0.15)",
+      transition:    "transform .15s, box-shadow .2s",
       letterSpacing: "0.01em",
     });
 
     trackBtn.addEventListener("mouseenter", () => {
       trackBtn.style.transform = "translateY(-2px)";
-      trackBtn.style.boxShadow = "0 10px 32px rgba(245,158,11,0.65),0 2px 8px rgba(0,0,0,0.3)";
+      trackBtn.style.boxShadow = "0 8px 24px rgba(0,0,0,0.2)";
     });
     trackBtn.addEventListener("mouseleave", () => {
       trackBtn.style.transform = "";
-      trackBtn.style.boxShadow = "0 6px 24px rgba(245,158,11,0.55),0 2px 8px rgba(0,0,0,0.3)";
+      trackBtn.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
     });
 
     trackBtn.addEventListener("click", handleTrack);
@@ -193,36 +288,55 @@
   }
 
   function handleTrack() {
-    const { company, role } = extractJobInfo();
+    const jobInfo = extractJobInfo();
+    const { company, role } = jobInfo;
 
     if (!company && !role) {
       showToast("❌ Couldn't read job details from this page", true);
       return;
     }
 
-    trackBtn.style.background = "linear-gradient(135deg,#10b981,#059669)";
-    trackBtn.innerHTML = "✅ Tracked!";
+    trackBtn.style.background = "#10b981";
+    trackBtn.style.color = "#ffffff";
+    trackBtn.innerHTML = "⏳ Saving...";
 
-    chrome.runtime.sendMessage({ type: "TRACK_THIS", data: { company, role } }, (res) => {
-      if (res?.success) {
-        showToast(`✅ "${role || company}" saved to queue`);
-        runHighlighter();
-      } else {
-        showToast("❌ Save failed — try again", true);
+    // Send ALL extracted fields to background
+    try {
+      chrome.runtime.sendMessage({ type: "TRACK_THIS", data: jobInfo }, (res) => {
+        if (chrome.runtime.lastError) {
+          trackBtn.style.background = "#ef4444";
+          trackBtn.innerHTML = "❌ Failed";
+          showToast("❌ Please refresh the page. Extension was updated.", true);
+        } else if (res?.success) {
+          trackBtn.innerHTML = "✅ Saved!";
+          showToast(`✅ "${role || company}" saved to DeadlineDesk`);
+          runHighlighter();
+        } else {
+          trackBtn.style.background = "#ef4444";
+          trackBtn.innerHTML = "❌ Failed";
+          showToast("❌ Save failed — try again", true);
+        }
+        setTimeout(() => {
+          trackBtn.style.background = "#0f172a";
+          trackBtn.style.color = "#ffffff";
+          trackBtn.innerHTML = `
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="16"/>
+              <line x1="8" y1="12" x2="16" y2="12"/>
+            </svg>
+            Save to DeadlineDesk`;
+        }, 2500);
+      });
+    } catch (e) {
+      if (e.message.includes("Extension context invalidated")) {
+        trackBtn.style.background = "#ef4444";
+        trackBtn.innerHTML = "🔄 Refresh Page";
+        showToast("❌ Extension was updated. Please refresh the page!", true);
       }
-      setTimeout(() => {
-        trackBtn.style.background = "linear-gradient(135deg,#f59e0b,#d97706)";
-        trackBtn.innerHTML = `
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2.5"
-               stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="8" x2="12" y2="16"/>
-            <line x1="8" y1="12" x2="16" y2="12"/>
-          </svg>
-          Track This`;
-      }, 2500);
-    });
+    }
   }
 
   chrome.runtime.onMessage.addListener((msg) => {
@@ -231,7 +345,7 @@
     }
   });
 
-  // ── Feature B — Already-Applied Highlighter ───────────────────────────────
+  // ── Feature B — Already-Applied Highlighter (unchanged) ──────────────────
   function runHighlighter() {
     chrome.runtime.sendMessage({ type: "GET_APPLIED_COMPANIES" }, (res) => {
       if (!res?.companies?.length) return;

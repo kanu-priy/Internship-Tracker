@@ -1,4 +1,4 @@
-﻿// ── DeadlineDesk Popup ────────────────────────────────────────────────────
+// ── DeadlineDesk Popup ────────────────────────────────────────────────────
 // Tab 1 (Add):    Manual entry form
 // Tab 2 (Queue):  View & delete saved applications
 // Tab 3 (Alarms): Deadline alarm toggle + upcoming deadlines list
@@ -89,7 +89,8 @@ function initStatusPills() {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".s-pill").forEach((b) => (b.className = "s-pill"));
       selectedStatus = btn.dataset.s;
-      btn.classList.add(`sel-${selectedStatus}`);
+      const statusClass = selectedStatus.replace(" ", "-");
+      btn.classList.add(`sel-${statusClass}`);
     });
   });
 }
@@ -100,20 +101,21 @@ function renderQueue(items) {
   list.innerHTML = "";
 
   if (!items.length) {
-    list.innerHTML = `<div class="empty-state"><span>📭</span>Nothing saved yet.<br>Use the Add tab or "Track This" on a job page.</div>`;
+    list.innerHTML = `<div class="empty-state"><span><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>Nothing saved yet.<br>Use the Add tab or "Track This" on a job page.</div>`;
     return;
   }
 
   items.forEach((item, i) => {
     const div = document.createElement("div");
     div.className = "q-item";
+    const statusClass = item.status.replace(" ", "-");
     div.innerHTML = `
       <div class="q-item-info">
         <div class="q-company">${item.company}</div>
         <div class="q-role">${item.role}</div>
         <div class="q-date">Applied: ${item.appliedDate}${item.deadline ? " · Due: " + item.deadline : ""}</div>
       </div>
-      <span class="q-status qs-${item.status}">${item.status}</span>
+      <span class="q-status qs-${statusClass}">${item.status}</span>
       <button class="btn-del-q" data-i="${i}" title="Remove">✕</button>
     `;
     list.appendChild(div);
@@ -160,7 +162,7 @@ function renderAlarms(items) {
     .slice(0, 6);
 
   if (!upcoming.length) {
-    list.innerHTML = `<div class="empty-state"><span>🗓</span>No upcoming deadlines.<br>Add a deadline when logging an application.</div>`;
+    list.innerHTML = `<div class="empty-state"><span><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></span>No upcoming deadlines.<br>Add a deadline when logging an application.</div>`;
     return;
   }
 
@@ -195,20 +197,24 @@ function inlineConfirm(message, onConfirm) {
   const overlay = document.createElement("div");
   overlay.style.cssText = `
     position:fixed; inset:0; z-index:999;
-    background:rgba(8,12,20,0.85); backdrop-filter:blur(6px);
+    background:rgba(255,255,255,0.85); backdrop-filter:blur(4px);
     display:flex; align-items:center; justify-content:center;
   `;
   overlay.innerHTML = `
-    <div style="background:#111827;border:1px solid rgba(255,255,255,0.1);
-                border-radius:16px;padding:24px 20px;max-width:260px;width:90%;text-align:center;">
-      <div style="font-size:13px;color:#f0f4ff;margin-bottom:18px;line-height:1.5;">${message}</div>
+    <style>
+      #ic-cancel:hover { border-color: #cccccc !important; }
+      #ic-confirm:hover { background: #b54d42 !important; color: #fff !important; }
+    </style>
+    <div style="background:#ffffff;border:1px solid #eaeaea;
+                border-radius:8px;padding:24px 20px;max-width:260px;width:90%;text-align:center;box-shadow:0 10px 25px rgba(0,0,0,0.05);">
+      <div style="font-size:13px;color:#111827;font-weight:500;margin-bottom:18px;line-height:1.5;">${message}</div>
       <div style="display:flex;gap:8px;justify-content:center;">
-        <button id="ic-cancel" style="flex:1;padding:9px;background:rgba(255,255,255,0.06);
-          border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:rgba(200,210,255,0.6);
-          font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Cancel</button>
-        <button id="ic-confirm" style="flex:1;padding:9px;background:rgba(248,113,113,0.15);
-          border:1px solid rgba(248,113,113,0.3);border-radius:10px;color:#f87171;
-          font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Clear All</button>
+        <button id="ic-cancel" style="flex:1;padding:9px;background:#ffffff;
+          border:1px solid #eaeaea;border-radius:6px;color:#111827;
+          font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .2s;">Cancel</button>
+        <button id="ic-confirm" style="flex:1;padding:9px;background:#ffffff;
+          border:1px solid #b54d42;border-radius:6px;color:#b54d42;
+          font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .2s;">Clear All</button>
       </div>
     </div>
   `;
@@ -228,6 +234,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
   initTabs();
   initStatusPills();
+
+  // ── Highlight if already applied (based on active tab) ───────────────────
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs.length > 0 && tabs[0].url && !tabs[0].url.startsWith("chrome://")) {
+      const title = (tabs[0].title || "").toLowerCase();
+      chrome.storage.local.get(["savedInternships"], (r) => {
+        const saved = r.savedInternships || [];
+        const appliedItem = saved.find(item => item.company && title.includes(item.company.toLowerCase()));
+        
+        if (appliedItem) {
+          // Pre-fill form
+          document.getElementById("inp-company").value = appliedItem.company;
+          document.getElementById("inp-role").value = appliedItem.role;
+          
+          // Highlight save button
+          const btn = document.getElementById("saveBtn");
+          btn.innerHTML = `⚠️ Already Applied (${appliedItem.appliedDate})`;
+          btn.style.background = "var(--amber-dim)";
+          btn.style.color = "var(--amber)";
+          btn.style.borderColor = "var(--amber)";
+        }
+      });
+    }
+  });
 
   // ── Save button ───────────────────────────────────────────────────────────
   document.getElementById("saveBtn").addEventListener("click", () => {

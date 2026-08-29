@@ -1,4 +1,4 @@
-﻿/* global chrome */
+/* global chrome */
 
 // ── DeadlineDesk — background service worker ──────────────────────────────
 // 1. Dashboard sync bridge  (GET_PENDING / CLEAR_PENDING / SYNC_SAVED)
@@ -10,7 +10,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 // 1. Dashboard sync bridge
 // ─────────────────────────────────────────────────────────────────────────
-chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // Fetch pending internships for dashboard sync
   if (request.type === "GET_PENDING") {
@@ -36,12 +36,8 @@ chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse) => 
         sendResponse({ success: true });
       }
     );
-    return true;
   }
-});
 
-
-// ─────────────────────────────────────────────────────────────────────────
 // 2. Deadline Alarm — every 3 hours via chrome.alarms
 // ─────────────────────────────────────────────────────────────────────────
 chrome.runtime.onInstalled.addListener(() => {
@@ -100,19 +96,55 @@ function checkDeadlines() {
           });
         }
       });
+
+      // Stale logic check (no updates in >7 days)
+      items.forEach((item) => {
+        const closedStatuses = ["Rejected", "Offer", "No Response"];
+        if (closedStatuses.includes(item.status)) return;
+
+        let lastDate = new Date(item.appliedDate);
+        if (item.timeline && item.timeline.length > 0) {
+          lastDate = new Date(item.timeline[item.timeline.length - 1].date);
+        } else if (item.updatedAt) {
+          lastDate = new Date(item.updatedAt);
+        }
+        
+        const daysSinceUpdate = Math.round((today - lastDate) / 86400000);
+        
+        // Notify if it's been exactly 7, 10, or 14 days (prevent spamming every day)
+        if ([7, 10, 14].includes(daysSinceUpdate)) {
+          const notifId = `stale-${item.company}-${daysSinceUpdate}`.replace(/\s+/g,"-");
+          chrome.notifications.create(notifId, {
+            type: "basic",
+            iconUrl: "icon.png",
+            title: `⚠️ Needs Attention — ${item.company}`,
+            message: `You haven't updated your ${item.role} app in ${daysSinceUpdate} days. Any news?`,
+            priority: 1,
+          });
+        }
+      });
     }
   );
 }
 
 
-// ─────────────────────────────────────────────────────────────────────────
-// 3 & 4. Internal messages from content script
-// ─────────────────────────────────────────────────────────────────────────
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // ─────────────────────────────────────────────────────────────────────────
+  // 3 & 4. Internal messages from content script
+  // ─────────────────────────────────────────────────────────────────────────
 
-  // Save internship from "Track This" button
+  // Save internship from "Save to DeadlineDesk" button (v2.0 rich extraction)
   if (request.type === "TRACK_THIS") {
-    const { company, role } = request.data;
+    const {
+      company, role,
+      // V2.0 rich fields (will be "" if not extracted — safe defaults)
+      location       = "",
+      jobDescription = "",
+      skills         = [],
+      employmentType = "",
+      stipend        = "",
+      applicationUrl = "",
+      source         = "linkedin",
+    } = request.data;
 
     chrome.storage.local.get(
       ["pendingInternships", "savedInternships"],
@@ -123,10 +155,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const newItem = {
           company,
           role,
-          status: "Applied",
-          appliedDate: new Date().toISOString().slice(0, 10),
-          deadline: "",
-          savedAt: new Date().toISOString(),
+          status:         "Applied",
+          appliedDate:    new Date().toISOString().slice(0, 10),
+          deadline:       "",
+          savedAt:        new Date().toISOString(),
+          // V2.0 rich fields
+          location,
+          jobDescription,
+          skills,
+          employmentType,
+          stipend,
+          applicationUrl,
+          source,
         };
 
         pending.push(newItem);
@@ -138,11 +178,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             savedInternships: saved,
           },
           () => {
-            chrome.tabs.sendMessage(sender.tab.id, {
-              type: "TRACK_CONFIRMED",
-              company,
-              role,
-            });
+            // Safe message to content script
+            try {
+              chrome.tabs.sendMessage(sender.tab.id, {
+                type: "TRACK_CONFIRMED",
+                company,
+                role,
+              });
+            } catch(e) {}
 
             sendResponse({ success: true });
           }

@@ -1,4 +1,4 @@
-﻿{
+{
   "manifest_version": 3,
   "name": "DeadlineDesk",
   "version": "1.0.0",
@@ -35,6 +35,13 @@
       ],
       "js": ["content.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "http://localhost:3000/*"
+      ],
+      "js": ["sync.js"],
+      "run_at": "document_start"
     }
   ],
 

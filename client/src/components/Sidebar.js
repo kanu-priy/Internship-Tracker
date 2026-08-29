@@ -1,32 +1,20 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
   .sidebar {
     width: 240px;
     min-height: 100vh;
-    background: #0d0d14;
-    border-right: 1px solid rgba(255,255,255,0.06);
+    background: #ffffff;
+    border-right: 1px solid #eaeaea;
     display: flex;
     flex-direction: column;
     padding: 28px 0;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', -apple-system, sans-serif;
     flex-shrink: 0;
     position: relative;
     overflow: hidden;
-  }
-
-  .sidebar-glow {
-    position: absolute;
-    width: 200px;
-    height: 200px;
-    background: rgba(245,158,11,0.07);
-    border-radius: 50%;
-    filter: blur(60px);
-    bottom: 40px;
-    left: -60px;
-    pointer-events: none;
   }
 
   .sidebar-logo {
@@ -35,73 +23,68 @@ const styles = `
     gap: 10px;
     padding: 0 24px;
     margin-bottom: 36px;
+    text-decoration: none;
   }
 
   .sidebar-logo-icon {
-    width: 34px;
-    height: 34px;
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-    border-radius: 10px;
+    width: 32px;
+    height: 32px;
+    background: #0f172a;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
-    box-shadow: 0 4px 16px rgba(245,158,11,0.35);
     flex-shrink: 0;
+    color: #ffffff;
   }
 
   .sidebar-logo-text {
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    font-size: 16px;
-    color: #fff;
+    font-weight: 700;
+    font-size: 18px;
+    color: #111827;
     letter-spacing: -0.3px;
   }
 
-  .sidebar-logo-text span { color: #f59e0b; }
-
   .sidebar-section-label {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
     letter-spacing: 1.5px;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.2);
+    color: #6b7280;
     padding: 0 24px;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
   }
 
   .sidebar-nav {
     list-style: none;
-    padding: 0;
-    margin: 0 12px;
+    padding: 0 12px;
+    margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
   }
 
   .sidebar-link {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 11px 14px;
-    border-radius: 12px;
+    padding: 10px 16px;
     font-size: 14px;
     font-weight: 500;
-    color: rgba(255,255,255,0.45);
+    color: #4b5563;
     text-decoration: none;
-    transition: all 0.18s ease;
-    position: relative;
+    transition: all 0.2s ease;
+    border-radius: 8px;
   }
 
   .sidebar-link:hover {
-    background: rgba(255,255,255,0.05);
-    color: rgba(255,255,255,0.85);
+    background: #f3f4f6;
+    color: #111827;
   }
 
   .sidebar-link.active {
-    background: rgba(245,158,11,0.12);
-    color: #fbbf24;
-    border: 1px solid rgba(245,158,11,0.18);
+    background: #0f172a;
+    color: #ffffff;
   }
 
   .sidebar-link-icon {
@@ -113,31 +96,15 @@ const styles = `
 
   .sidebar-link.active .sidebar-link-icon { opacity: 1; }
 
-  .sidebar-link-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #f59e0b;
-    position: absolute;
-    right: 14px;
-    box-shadow: 0 0 8px rgba(245,158,11,0.6);
-  }
-
-  .sidebar-divider {
-    height: 1px;
-    background: rgba(255,255,255,0.05);
-    margin: 16px 24px;
-  }
-
   .sidebar-footer {
     margin-top: auto;
     padding: 16px 24px;
-    border-top: 1px solid rgba(255,255,255,0.05);
+    border-top: 1px solid #eaeaea;
   }
 
   .sidebar-version {
-    font-size: 11px;
-    color: rgba(255,255,255,0.2);
+    font-size: 12px;
+    color: #6b7280;
   }
 `;
 
@@ -172,6 +139,19 @@ const navItems = [
       </svg>
     ),
   },
+  {
+    href: "/resume",
+    label: "My Resume",
+    icon: (
+      <svg className="sidebar-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+    ),
+  },
 ];
 
 export default function Sidebar() {
@@ -181,12 +161,16 @@ export default function Sidebar() {
     <>
       <style>{styles}</style>
       <div className="sidebar">
-        <div className="sidebar-glow" />
-
-        <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">📋</div>
-          <div className="sidebar-logo-text">Deadline<span>Desk</span></div>
-        </div>
+        <Link to="/dashboard" className="sidebar-logo">
+          <div className="sidebar-logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width: '100%', height: '100%'}}>
+              <path d="M8 2h8l4 10H4L8 2Z"/>
+              <path d="M12 12v6"/>
+              <path d="M8 22v-2c0-1.1.9-2 2-2h4a2 2 0 0 1 2 2v2H8Z"/>
+            </svg>
+          </div>
+          <div className="sidebar-logo-text">DeadlineDesk</div>
+        </Link>
 
         <div className="sidebar-section-label">Menu</div>
 
@@ -195,18 +179,17 @@ export default function Sidebar() {
             const isActive = location.pathname === href;
             return (
               <li key={href}>
-                <a href={href} className={`sidebar-link ${isActive ? "active" : ""}`}>
+                <Link to={href} className={`sidebar-link ${isActive ? "active" : ""}`}>
                   {icon}
                   {label}
-                  {isActive && <span className="sidebar-link-dot" />}
-                </a>
+                </Link>
               </li>
             );
           })}
         </ul>
 
         <div className="sidebar-footer">
-          <div className="sidebar-version">DeadlineDesk v1.0</div>
+          <div className="sidebar-version">DeadlineDesk v2.0</div>
         </div>
       </div>
     </>

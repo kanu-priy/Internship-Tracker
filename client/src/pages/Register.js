@@ -2,108 +2,77 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
   .reg-root {
     min-height: 100vh;
-    background: #0a0a0f;
+    background: #fafbfc;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'DM Sans', sans-serif;
-    overflow: hidden;
-    position: relative;
-  }
-
-  .reg-bg-orb {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
-    pointer-events: none;
-  }
-  .orb1 { width: 500px; height: 500px; background: rgba(139,92,246,0.15); top: -100px; right: -100px; }
-  .orb2 { width: 400px; height: 400px; background: rgba(245,158,11,0.1); bottom: -80px; left: -80px; }
-
-  .reg-grid {
-    position: absolute;
-    inset: 0;
-    background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-                      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-    background-size: 60px 60px;
-    pointer-events: none;
+    font-family: 'Inter', -apple-system, sans-serif;
   }
 
   .reg-card {
-    position: relative;
-    z-index: 10;
     width: 100%;
-    max-width: 440px;
+    max-width: 400px;
     margin: 20px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 24px;
-    padding: 48px 44px;
-    backdrop-filter: blur(20px);
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 32px 64px rgba(0,0,0,0.5);
-    animation: slideUp 0.6s cubic-bezier(0.16,1,0.3,1) forwards;
-  }
-
-  @keyframes slideUp {
-    from { opacity: 0; transform: translateY(30px); }
-    to { opacity: 1; transform: translateY(0); }
+    background: #fff;
+    border: 1px solid #eaeaea;
+    border-radius: 12px;
+    padding: 40px;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
   }
 
   .reg-logo {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 10px;
-    margin-bottom: 36px;
+    margin-bottom: 32px;
+    text-decoration: none;
   }
 
   .reg-logo-icon {
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-    border-radius: 12px;
+    width: 32px;
+    height: 32px;
+    color: #0f172a;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
-    box-shadow: 0 8px 24px rgba(139,92,246,0.4);
   }
 
   .reg-logo-text {
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    font-size: 20px;
-    color: #fff;
+    font-weight: 700;
+    font-size: 24px;
+    color: #111827;
     letter-spacing: -0.5px;
   }
 
-  .reg-logo-text span { color: #8b5cf6; }
+  .reg-logo-text span { color: #0f172a; }
 
   .reg-title {
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 28px;
-    color: #fff;
-    margin-bottom: 6px;
-    letter-spacing: -0.5px;
+    font-weight: 600;
+    font-size: 20px;
+    color: #111827;
+    margin-bottom: 8px;
+    text-align: center;
   }
 
   .reg-subtitle {
     font-size: 14px;
-    color: rgba(255,255,255,0.4);
+    color: #6b7280;
     margin-bottom: 32px;
+    text-align: center;
   }
 
   .reg-error {
-    background: rgba(239,68,68,0.12);
-    border: 1px solid rgba(239,68,68,0.3);
-    color: #fca5a5;
-    font-size: 13px;
+    background: #fce8e6;
+    border: 1px solid #b54d42;
+    color: #b54d42;
+    font-size: 14px;
     padding: 12px 16px;
-    border-radius: 12px;
+    border-radius: 8px;
     margin-bottom: 20px;
   }
 
@@ -113,72 +82,65 @@ const styles = `
 
   .input-label {
     display: block;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
-    color: rgba(255,255,255,0.5);
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    margin-bottom: 8px;
+    color: #6b7280;
+    margin-bottom: 6px;
   }
 
   .reg-input {
     width: 100%;
-    padding: 14px 16px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    color: #fff;
-    font-size: 15px;
-    font-family: 'DM Sans', sans-serif;
+    padding: 12px 14px;
+    background: #fff;
+    border: 1px solid #eaeaea;
+    border-radius: 8px;
+    color: #111827;
+    font-size: 14px;
+    font-family: 'Inter', -apple-system, sans-serif;
     outline: none;
     transition: all 0.2s ease;
     box-sizing: border-box;
   }
 
-  .reg-input::placeholder { color: rgba(255,255,255,0.2); }
+  .reg-input::placeholder { color: #9e9890; }
 
   .reg-input:focus {
-    border-color: rgba(139,92,246,0.5);
-    background: rgba(139,92,246,0.05);
-    box-shadow: 0 0 0 3px rgba(139,92,246,0.1);
+    border-color: #0f172a;
+    box-shadow: 0 0 0 3px rgba(59, 111, 181, 0.1);
   }
 
   .reg-btn {
     width: 100%;
-    padding: 15px;
+    padding: 12px;
     margin-top: 8px;
-    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    background: #0f172a;
     border: none;
-    border-radius: 12px;
+    border-radius: 8px;
     color: #fff;
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 15px;
-    letter-spacing: 0.3px;
+    font-weight: 600;
+    font-size: 14px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 8px 24px rgba(139,92,246,0.35);
+    transition: background 0.2s ease;
   }
 
   .reg-btn:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 12px 32px rgba(139,92,246,0.5);
+    background: #1e293b;
   }
-  .reg-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .reg-btn:disabled { opacity: 0.7; cursor: not-allowed; }
 
   .reg-footer {
     text-align: center;
     margin-top: 24px;
     font-size: 14px;
-    color: rgba(255,255,255,0.35);
+    color: #6b7280;
   }
 
   .reg-footer a {
-    color: #8b5cf6;
+    color: #0f172a;
     text-decoration: none;
     font-weight: 500;
   }
-  .reg-footer a:hover { color: #a78bfa; }
+  .reg-footer a:hover { text-decoration: underline; }
 `;
 
 export default function Register() {
@@ -216,15 +178,17 @@ export default function Register() {
     <>
       <style>{styles}</style>
       <div className="reg-root">
-        <div className="reg-bg-orb orb1" />
-        <div className="reg-bg-orb orb2" />
-        <div className="reg-grid" />
-
         <div className="reg-card">
-          <div className="reg-logo">
-            <div className="reg-logo-icon">📋</div>
+          <Link to="/" className="reg-logo">
+            <div className="reg-logo-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width: '100%', height: '100%'}}>
+                <path d="M8 2h8l4 10H4L8 2Z"/>
+                <path d="M12 12v6"/>
+                <path d="M8 22v-2c0-1.1.9-2 2-2h4a2 2 0 0 1 2 2v2H8Z"/>
+              </svg>
+            </div>
             <div className="reg-logo-text">Deadline<span>Desk</span></div>
-          </div>
+          </Link>
 
           <h1 className="reg-title">Create account</h1>
           <p className="reg-subtitle">Start tracking your internship applications</p>
@@ -248,7 +212,7 @@ export default function Register() {
                 value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
             <button disabled={loading} type="submit" className="reg-btn">
-              {loading ? "Creating account..." : "Get Started →"}
+              {loading ? "Creating account..." : "Get Started"}
             </button>
           </form>
 

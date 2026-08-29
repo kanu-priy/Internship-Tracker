@@ -1,284 +1,349 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import Sidebar from "../components/Sidebar";
+import Toast from "../components/Toast";
+import { useNavigate } from "react-router-dom";
 
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
   .account-root {
-    min-height: 100vh;
-    background: #0a0a0f;
     display: flex;
-    align-items: center;
+    min-height: 100vh;
+    background: var(--bg);
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: var(--text);
+  }
+
+  .account-main-wrap {
+    flex: 1;
+    display: flex;
     justify-content: center;
-    font-family: 'DM Sans', sans-serif;
-    position: relative;
-    overflow: hidden;
-    padding: 40px 20px;
-    box-sizing: border-box;
-  }
-
-  .account-bg-orb {
-    position: fixed;
-    border-radius: 50%;
-    filter: blur(90px);
-    pointer-events: none;
-  }
-  .ac-orb1 { width: 500px; height: 500px; background: rgba(245,158,11,0.09); top: -150px; left: -100px; }
-  .ac-orb2 { width: 400px; height: 400px; background: rgba(139,92,246,0.08); bottom: -100px; right: -100px; }
-
-  .account-grid-bg {
-    position: fixed;
-    inset: 0;
-    background-image: linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
-                      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
-    background-size: 60px 60px;
-    pointer-events: none;
+    align-items: flex-start;
+    padding: 60px 40px;
   }
 
   .account-card {
-    position: relative;
-    z-index: 10;
     width: 100%;
-    max-width: 460px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 28px;
-    overflow: hidden;
-    backdrop-filter: blur(20px);
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 32px 64px rgba(0,0,0,0.6);
-    animation: slideUp 0.5s cubic-bezier(0.16,1,0.3,1);
+    max-width: 520px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 40px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.02);
   }
 
-  @keyframes slideUp {
-    from { opacity: 0; transform: translateY(24px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  /* Header banner */
-  .account-banner {
-    height: 100px;
-    background: linear-gradient(135deg, rgba(245,158,11,0.18), rgba(139,92,246,0.15));
-    position: relative;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-  }
-
-  .account-banner-pattern {
-    position: absolute;
-    inset: 0;
-    background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
-    background-size: 20px 20px;
-  }
-
-  /* Avatar */
-  .account-avatar-wrap {
-    display: flex;
-    justify-content: center;
+  .account-header {
+    text-align: center;
+    margin-bottom: 32px;
   }
 
   .account-avatar {
-    width: 84px;
-    height: 84px;
+    width: 80px;
+    height: 80px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #f59e0b, #d97706);
+    background: #f3f4f6;
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
+    font-weight: 700;
     font-size: 32px;
-    color: #000;
-    box-shadow: 0 8px 32px rgba(245,158,11,0.45), 0 0 0 4px rgba(10,10,15,1), 0 0 0 6px rgba(245,158,11,0.2);
-    margin-top: -42px;
-    position: relative;
-    z-index: 2;
-  }
-
-  .account-body {
-    padding: 20px 36px 36px;
+    color: #111827;
+    margin: 0 auto 16px auto;
   }
 
   .account-name {
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    font-size: 24px;
-    color: #fff;
-    text-align: center;
-    letter-spacing: -0.5px;
+    font-size: 22px;
+    font-weight: 700;
+    color: #111827;
     margin-bottom: 4px;
   }
 
-  .account-email-header {
-    text-align: center;
+  .account-email {
     font-size: 14px;
-    color: rgba(255,255,255,0.35);
-    margin-bottom: 28px;
+    color: #6b7280;
   }
 
-  .account-fields {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 28px;
-  }
-
-  .account-field {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 14px;
-    padding: 14px 18px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-  }
-
-  .account-field-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    background: rgba(245,158,11,0.12);
-    border: 1px solid rgba(245,158,11,0.18);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    font-size: 15px;
-  }
-
-  .account-field-content { flex: 1; min-width: 0; }
-
-  .account-field-label {
-    font-size: 11px;
+  .section-title {
+    font-size: 14px;
     font-weight: 600;
-    letter-spacing: 0.8px;
+    color: #111827;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.3);
-    margin-bottom: 3px;
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
   }
 
-  .account-field-value {
-    font-size: 15px;
-    font-weight: 500;
-    color: #fff;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .account-actions {
+  .pref-group {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 16px;
+    margin-bottom: 32px;
   }
 
-  .btn-edit-profile {
-    width: 100%;
-    padding: 14px;
-    background: rgba(245,158,11,0.12);
-    border: 1px solid rgba(245,158,11,0.22);
-    border-radius: 13px;
-    color: #fbbf24;
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s;
+  .pref-row {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
+    padding: 14px 16px;
+    background: #fafbfc;
+    border: 1px solid var(--border);
+    border-radius: 8px;
   }
-  .btn-edit-profile:hover {
-    background: rgba(245,158,11,0.2);
-    border-color: rgba(245,158,11,0.38);
+
+  .pref-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .pref-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .pref-desc {
+    font-size: 12px;
+    color: #6b7280;
+  }
+
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+  }
+
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #cbd5e1;
+    transition: .3s;
+    border-radius: 24px;
+  }
+
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+  }
+
+  input:checked + .slider {
+    background-color: #0f172a;
+  }
+
+  input:checked + .slider:before {
+    transform: translateX(20px);
+  }
+
+  .btn-test {
+    width: 100%;
+    padding: 10px 16px;
+    background: #f1f5f9;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: #334155;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    margin-bottom: 24px;
+    transition: all 0.2s;
+  }
+
+  .btn-test:hover {
+    background: #e2e8f0;
   }
 
   .btn-logout {
     width: 100%;
-    padding: 14px;
-    background: rgba(239,68,68,0.1);
-    border: 1px solid rgba(239,68,68,0.2);
-    border-radius: 13px;
-    color: #f87171;
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
+    padding: 12px 20px;
+    background: transparent;
+    border: 1px solid #fee2e2;
+    border-radius: 8px;
+    color: #dc2626;
+    font-weight: 600;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
   }
   .btn-logout:hover {
-    background: rgba(239,68,68,0.2);
-    border-color: rgba(239,68,68,0.38);
+    background: #fee2e2;
   }
 `;
 
 export default function MyAccount() {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const navigate = useNavigate();
+  const [profile, setProfile] = useState({ name: "", email: "" });
+  const [prefs, setPrefs] = useState({ deadlines: true, staleAlerts: true, weeklyDigest: true });
+  const [toast, setToast] = useState({ message: "", type: "success" });
+  const [sendingTest, setSendingTest] = useState(false);
+
+  useEffect(() => {
+    async function loadPreferences() {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          navigate("/login");
+          return;
+        }
+        const res = await fetch("http://localhost:5000/api/me/preferences", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setProfile({ name: data.name, email: data.email });
+          if (data.emailPreferences) {
+            setPrefs(data.emailPreferences);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load user preferences", err);
+      }
+    }
+    loadPreferences();
+  }, [navigate]);
+
+  const handleToggle = async (key) => {
+    const updated = { ...prefs, [key]: !prefs[key] };
+    setPrefs(updated);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:5000/api/me/preferences", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ emailPreferences: updated })
+      });
+      if (res.ok) {
+        setToast({ message: "Email preferences saved!", type: "success" });
+      }
+    } catch (err) {
+      setToast({ message: "Failed to update preferences", type: "error" });
+    }
+  };
+
+  const handleSendTestEmail = async () => {
+    setSendingTest(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:5000/api/me/test-email", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setToast({ message: "Test notification dispatched to your email!", type: "success" });
+      } else {
+        setToast({ message: "Failed to send test notification", type: "error" });
+      }
+    } catch (err) {
+      setToast({ message: "Error triggering test notification", type: "error" });
+    } finally {
+      setSendingTest(false);
+    }
+  };
+
+  function handleLogout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/");
+  }
 
   return (
     <>
       <style>{styles}</style>
       <div className="account-root">
-        <div className="account-bg-orb ac-orb1" />
-        <div className="account-bg-orb ac-orb2" />
-        <div className="account-grid-bg" />
-
-        <div className="account-card">
-          {/* Banner */}
-          <div className="account-banner">
-            <div className="account-banner-pattern" />
-          </div>
-
-          {/* Avatar */}
-          <div className="account-avatar-wrap">
-            <div className="account-avatar">
-              {user?.name?.charAt(0).toUpperCase() || "?"}
+        <Sidebar />
+        <div className="account-main-wrap">
+          <div className="account-card">
+            <div className="account-header">
+              <div className="account-avatar">
+                {profile.name?.charAt(0).toUpperCase() || "?"}
+              </div>
+              <div className="account-name">{profile.name || "User Account"}</div>
+              <div className="account-email">{profile.email || ""}</div>
             </div>
-          </div>
 
-          <div className="account-body">
-            <div className="account-name">{user?.name || "Unknown User"}</div>
-            <div className="account-email-header">{user?.email || "No email"}</div>
-
-            <div className="account-fields">
-              <div className="account-field">
-                <div className="account-field-icon">👤</div>
-                <div className="account-field-content">
-                  <div className="account-field-label">Full Name</div>
-                  <div className="account-field-value">{user?.name || "—"}</div>
+            <div className="section-title">Email Notifications</div>
+            
+            <div className="pref-group">
+              <div className="pref-row">
+                <div className="pref-info">
+                  <div className="pref-title">Deadline Alerts (3d & 1d out)</div>
+                  <div className="pref-desc">Urgent emails when deadlines are approaching</div>
                 </div>
+                <label className="switch">
+                  <input
+                    type="checkbox"
+                    checked={prefs.deadlines}
+                    onChange={() => handleToggle("deadlines")}
+                  />
+                  <span className="slider"></span>
+                </label>
               </div>
 
-              <div className="account-field">
-                <div className="account-field-icon">✉️</div>
-                <div className="account-field-content">
-                  <div className="account-field-label">Email Address</div>
-                  <div className="account-field-value">{user?.email || "—"}</div>
+              <div className="pref-row">
+                <div className="pref-info">
+                  <div className="pref-title">Follow-up & Stale Reminders</div>
+                  <div className="pref-desc">Alerts when no company update in 14+ days</div>
                 </div>
+                <label className="switch">
+                  <input
+                    type="checkbox"
+                    checked={prefs.staleAlerts}
+                    onChange={() => handleToggle("staleAlerts")}
+                  />
+                  <span className="slider"></span>
+                </label>
+              </div>
+
+              <div className="pref-row">
+                <div className="pref-info">
+                  <div className="pref-title">Sunday Weekly Digest</div>
+                  <div className="pref-desc">Weekly progress summary & AI action items</div>
+                </div>
+                <label className="switch">
+                  <input
+                    type="checkbox"
+                    checked={prefs.weeklyDigest}
+                    onChange={() => handleToggle("weeklyDigest")}
+                  />
+                  <span className="slider"></span>
+                </label>
               </div>
             </div>
 
-            <div className="account-actions">
-              
-              <button
-                className="btn-logout"
-                onClick={() => {
-                  localStorage.clear();
-                  window.location.href = "/login";
-                }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                  <polyline points="16 17 21 12 16 7"/>
-                  <line x1="21" y1="12" x2="9" y2="12"/>
-                </svg>
-                Sign Out
-              </button>
-            </div>
+            <button className="btn-test" onClick={handleSendTestEmail} disabled={sendingTest}>
+              {sendingTest ? "Sending..." : "⚡ Send Test Notification Email"}
+            </button>
+
+            <button className="btn-logout" onClick={handleLogout}>
+              Logout
+            </button>
           </div>
         </div>
+
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast({ message: "", type: "success" })}
+        />
       </div>
     </>
   );
