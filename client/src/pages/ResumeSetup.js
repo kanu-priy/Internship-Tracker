@@ -1,19 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 
 const API = "http://localhost:5000";
 
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
   .resume-root {
     display: flex;
     min-height: 100vh;
-    background: #fafbfc;
-    font-family: 'Inter', -apple-system, sans-serif;
-    color: #111827;
+    background: #f5f3ef;
+    font-family: 'Outfit', -apple-system, sans-serif;
+    color: #2a2a2a;
   }
 
   .resume-main-wrap {
@@ -26,7 +23,7 @@ const styles = `
   .resume-main {
     flex: 1;
     padding: 36px 40px;
-    background: #fafbfc;
+    background: #f5f3ef;
     position: relative;
     overflow: hidden;
   }
@@ -39,24 +36,26 @@ const styles = `
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 14px;
-    color: #6b7280;
+    font-size: 13px;
+    font-weight: 600;
+    color: #8a857e;
     text-decoration: none;
     margin-bottom: 20px;
     transition: color 0.2s;
   }
-  .resume-back:hover { color: #111827; }
+  .resume-back:hover { color: #6b2737; }
 
   .resume-title {
-    font-weight: 700;
+    font-weight: 800;
     font-size: 32px;
-    color: #111827;
-    margin: 0 0 8px 0;
+    color: #2a2a2a;
+    margin: 0 0 6px 0;
+    letter-spacing: -0.5px;
   }
 
   .resume-subtitle {
-    font-size: 15px;
-    color: #6b7280;
+    font-size: 14px;
+    color: #8a857e;
     line-height: 1.5;
   }
 
@@ -72,34 +71,38 @@ const styles = `
   }
   
   .resume-label {
-    font-size: 14px;
-    font-weight: 600;
-    color: #111827;
+    font-size: 12px;
+    font-weight: 700;
+    color: #8a857e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
   
   .resume-char-count {
-    font-size: 13px;
-    color: #9e9890;
+    font-size: 12px;
+    color: #b0aaa2;
+    font-family: 'Space Mono', monospace;
   }
 
   .resume-textarea {
     width: 100%;
-    min-height: 400px;
-    background: #fff;
-    border: 1px solid #eaeaea;
-    border-radius: 8px;
-    padding: 16px;
-    color: #111827;
-    font-size: 14px;
-    font-family: 'Inter', -apple-system, sans-serif;
+    min-height: 380px;
+    background: #ffffff;
+    border: 1px solid #e4e0d9;
+    border-radius: 12px;
+    padding: 18px;
+    color: #2a2a2a;
+    font-size: 13px;
+    font-family: 'Space Mono', monospace;
     line-height: 1.6;
     resize: vertical;
     outline: none;
     transition: border-color 0.2s;
     box-sizing: border-box;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
   }
-  .resume-textarea::placeholder { color: #b5b0a8; }
-  .resume-textarea:focus { border-color: #0f172a; }
+  .resume-textarea::placeholder { color: #b0aaa2; }
+  .resume-textarea:focus { border-color: #6b2737; }
 
   .resume-actions {
     display: flex;
@@ -109,67 +112,98 @@ const styles = `
     margin-top: 24px;
   }
 
+  .btn-save-resume {
+    padding: 10px 22px;
+    background: #6b2737;
+    border: none;
+    border-radius: 20px;
+    color: #fff;
+    font-family: 'Outfit', -apple-system, sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    box-shadow: 0 4px 14px rgba(107, 39, 55, 0.25);
+  }
+  .btn-save-resume:hover { background: #541e2b; transform: translateY(-1px); }
+
+  .btn-score-all {
+    padding: 10px 22px;
+    background: #2d6a4f;
+    border: none;
+    border-radius: 20px;
+    color: #fff;
+    font-family: 'Outfit', -apple-system, sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    box-shadow: 0 4px 14px rgba(45, 106, 79, 0.25);
+  }
+  .btn-score-all:hover { background: #1b4332; transform: translateY(-1px); }
   .resume-save-btn, .resume-match-all-btn {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 12px 24px;
+    padding: 10px 22px;
     border: none;
-    border-radius: 8px;
-    font-family: 'Inter', -apple-system, sans-serif;
-    font-weight: 600;
-    font-size: 14px;
+    border-radius: 20px;
+    font-family: 'Outfit', -apple-system, sans-serif;
+    font-weight: 700;
+    font-size: 13px;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.2s, transform 0.1s;
+    box-shadow: 0 4px 12px rgba(107, 39, 55, 0.2);
   }
 
   .resume-save-btn {
-    background: #0f172a;
+    background: #6b2737;
     color: #fff;
   }
-  .resume-save-btn:hover:not(:disabled) { background: #1e293b; }
+  .resume-save-btn:hover:not(:disabled) { background: #541e2b; transform: translateY(-1px); }
   .resume-save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
   .resume-match-all-btn {
-    background: #4a8c6a;
+    background: #2d6a4f;
     color: #fff;
+    box-shadow: 0 4px 12px rgba(45, 106, 79, 0.2);
   }
-  .resume-match-all-btn:hover:not(:disabled) { background: #3a7055; }
+  .resume-match-all-btn:hover:not(:disabled) { background: #1b4332; transform: translateY(-1px); }
   .resume-match-all-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
   .resume-clear-btn {
-    padding: 12px 20px;
-    background: transparent;
-    border: 1px solid #eaeaea;
-    border-radius: 8px;
-    color: #6b7280;
-    font-family: 'Inter', -apple-system, sans-serif;
-    font-weight: 500;
-    font-size: 14px;
+    padding: 9px 18px;
+    background: #ffffff;
+    border: 1px solid #e4e0d9;
+    border-radius: 20px;
+    color: #8a857e;
+    font-family: 'Outfit', -apple-system, sans-serif;
+    font-weight: 600;
+    font-size: 13px;
     cursor: pointer;
     transition: all 0.2s;
   }
-  .resume-clear-btn:hover { background: #fff; color: #111827; border-color: #b5b0a8; }
+  .resume-clear-btn:hover { background: #faf8f5; color: #2a2a2a; border-color: #6b2737; }
 
   .resume-toast {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 16px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
     animation: toastIn 0.3s ease;
   }
   .resume-toast.success {
-    background: #e8f5ee;
-    border: 1px solid #4a8c6a;
-    color: #4a8c6a;
+    background: #dcfce7;
+    border: 1px solid #86efac;
+    color: #166534;
   }
   .resume-toast.error {
-    background: #fce8e6;
-    border: 1px solid #b54d42;
-    color: #b54d42;
+    background: #fee2e2;
+    border: 1px solid #fca5a5;
+    color: #991b1b;
   }
 
   @keyframes toastIn {

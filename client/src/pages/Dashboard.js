@@ -1,6 +1,4 @@
-/* global chrome */
-import React, { useEffect, useState, useCallback, useRef} from "react";
-import Navbar from "../components/Navbar";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import Sidebar from "../components/Sidebar";
 import KanbanBoard from "../components/KanbanBoard";
 import AIAssistModal from "../components/AIAssistModal";
@@ -8,7 +6,6 @@ import EmailScannerModal from "../components/EmailScannerModal";
 import Toast from "../components/Toast";
 import { useNavigate } from "react-router-dom";
 
-const EXTENSION_ID = "hlbpahiogcemdholecbgommhgdppcfdj";
 const STATUSES = ["Applied", "Interview", "OA", "Offer", "Rejected"];
 
 const statusDotColors = {
@@ -19,118 +16,131 @@ const statusDotColors = {
   Rejected: "#f87171",
 };
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  .main { flex: 1; padding: 28px 36px; overflow-y: auto; background: #f5f3ef; color: #2a2a2a; font-family: 'Outfit', -apple-system, sans-serif; }
   
-  .main { flex: 1; padding: 32px 40px; overflow-y: auto; background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; }
-  
-  .top-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+  .top-row { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 28px; }
   .top-left { display: flex; flex-direction: column; gap: 4px; }
-  .header-date { font-size: 13px; color: #6b7280; font-weight: 500; }
-  .header-greeting { font-size: 24px; font-weight: 700; color: #111827; letter-spacing: -0.5px; }
+  .header-date { font-size: 11px; color: #8a857e; font-weight: 700; font-family: 'Space Mono', monospace; text-transform: uppercase; letter-spacing: 1px; }
+  .header-greeting { font-size: 32px; font-weight: 800; color: #2a2a2a; letter-spacing: -0.6px; line-height: 1.1; }
+  .header-sub { font-size: 13px; color: #8a857e; margin-top: 2px; }
   
-  .top-right { display: flex; gap: 16px; align-items: center; }
-  .metric-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 16px; display: flex; flex-direction: column; }
-  .metric-label { font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
-  .metric-value { font-size: 18px; font-weight: 700; color: var(--text); }
+  .top-right { display: flex; gap: 14px; align-items: center; }
   
-  .add-btn { background: var(--primary); color: #ffffff; padding: 10px 20px; border-radius: 12px; font-weight: 500; font-size: 14px; text-decoration: none; border: none; cursor: pointer; transition: background 0.2s; }
-  .add-btn:hover { background: #1e293b; }
+  .score-widget {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid #e4e0d9;
+    border-radius: 16px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  }
+  .score-circle-svg { width: 48px; height: 48px; transform: rotate(-90deg); }
   
-  .row-1 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
-  .card-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .add-btn { background: #6b2737; color: #ffffff; padding: 9px 18px; border-radius: 20px; font-weight: 700; font-size: 12px; text-decoration: none; border: none; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(107, 39, 55, 0.25); display: flex; align-items: center; gap: 6px; }
+  .add-btn:hover { background: #541e2b; transform: translateY(-1px); }
   
-  .nba-msg { font-size: 14px; color: #4b5563; margin-bottom: 16px; line-height: 1.5; }
-  .nba-link { display: inline-block; background: #f3f4f6; color: var(--text); padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; text-decoration: none; }
+  .scan-btn { background: #ffffff; color: #5a5650; border: 1px solid #d5d0c9; padding: 9px 16px; border-radius: 20px; font-weight: 600; font-size: 12px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+  .scan-btn:hover { border-color: #6b2737; color: #6b2737; background: #ffffff; }
   
-  .stale-list { display: flex; flex-direction: column; gap: 12px; }
-  .stale-item { display: flex; justify-content: space-between; align-items: center; font-size: 14px; padding: 8px 0; border-bottom: 1px solid #f9fafb; }
-  .stale-item:last-child { border-bottom: none; padding-bottom: 0; }
-  .stale-info { display: flex; align-items: center; gap: 10px; color: #4b5563; }
-  .stale-dot { width: 8px; height: 8px; border-radius: 50%; }
-  .stale-days { font-size: 12px; color: #6b7280; background: #f3f4f6; padding: 2px 8px; border-radius: 12px; }
+  .priority-stack { margin-bottom: 28px; }
+  .priority-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 11px; font-weight: 700; color: #6b2737; text-transform: uppercase; letter-spacing: 0.8px; }
+  
+  .priority-card {
+    background: #ffffff;
+    border: 1px solid #e4e0d9;
+    border-radius: 14px;
+    padding: 16px 20px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .priority-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px -5px rgba(107, 39, 55, 0.08);
+  }
+  .priority-stripe-urgent { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #c1121f; }
+  .priority-stripe-soon { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #c17817; }
+  .priority-stripe-stale { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #b0aaa2; }
   
   .row-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 24px; }
-  .status-blocks { display: flex; gap: 12px; }
-  .status-block { flex: 1; background: #f9fafb; border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; }
-  .status-val { font-size: 24px; font-weight: 700; margin-bottom: 4px; color: var(--text); }
-  .status-lbl { font-size: 11px; font-weight: 600; color: #6b7280; text-transform: uppercase; }
+  .card { background: #ffffff; border: 1px solid #e4e0d9; border-radius: 16px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
+  .card-title { font-size: 11px; font-weight: 700; color: #8a857e; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  
+  .status-blocks { display: flex; gap: 10px; }
+  .status-block { flex: 1; background: #faf8f5; border: 1px solid #e4e0d9; border-radius: 12px; padding: 14px 8px; text-align: center; transition: all 0.2s; cursor: pointer; }
+  .status-block:hover { border-color: #6b2737; transform: translateY(-2px); background: #ffffff; }
+  .status-block.active { border-color: #6b2737; background: #ffffff; box-shadow: 0 4px 12px rgba(107,39,55,0.12); }
+  .status-val { font-size: 24px; font-weight: 800; margin-bottom: 2px; }
+  .status-lbl { font-size: 10px; font-weight: 700; color: #8a857e; text-transform: uppercase; letter-spacing: 0.5px; }
   
   .closing-list { display: flex; flex-direction: column; gap: 8px; }
-  .closing-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f9fafb; border-radius: 8px; }
-  .closing-company { font-size: 13px; font-weight: 600; color: var(--text); }
-  .closing-days { font-size: 12px; font-weight: 500; padding: 2px 8px; border-radius: 12px; }
-  .badge-urgent { background: #fee2e2; color: #b91c1c; }
-  .badge-soon { background: #fef3c7; color: #b45309; }
-  .badge-ok { background: #dbeafe; color: #1d4ed8; }
+  .closing-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #faf8f5; border: 1px solid #e4e0d9; border-radius: 10px; }
+  .closing-company { font-size: 13px; font-weight: 700; color: #2a2a2a; }
+  .closing-days { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 12px; font-family: 'Space Mono', monospace; }
+  .badge-urgent { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+  .badge-soon { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+  .badge-ok { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
   
   .row-3 { display: flex; flex-direction: column; gap: 16px; }
-  .filters { display: flex; gap: 12px; }
-  .filter-input { flex: 1; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; font-size: 14px; color: var(--text); outline: none; }
-  .filter-select { padding: 10px 14px; border: 1px solid var(--border); border-radius: 12px; font-size: 14px; color: var(--text); outline: none; background: var(--surface); }
+  .filters { display: flex; gap: 10px; align-items: center; }
+  .filter-input { flex: 1; padding: 9px 16px; background: #ffffff; border: 1px solid #e4e0d9; border-radius: 20px; font-size: 12px; color: #2a2a2a; outline: none; transition: border 0.2s; font-family: inherit; }
+  .filter-input:focus { border-color: #6b2737; }
+  .filter-select { padding: 9px 14px; border: 1px solid #e4e0d9; border-radius: 20px; font-size: 12px; color: #2a2a2a; outline: none; background: #ffffff; font-weight: 600; font-family: inherit; }
   
-  .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .view-toggle { display: flex; background: #eae7e2; border-radius: 20px; padding: 3px; }
+  .view-toggle-btn { border: none; padding: 5px 14px; border-radius: 16px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; background: transparent; color: #8a857e; font-family: inherit; }
+  .view-toggle-btn.active { background: #2a2a2a; color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  
+  .table-card { background: #ffffff; border: 1px solid #e4e0d9; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
   table { width: 100%; border-collapse: collapse; text-align: left; }
-  th { padding: 14px 20px; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; border-bottom: 1px solid var(--border); background: #f9fafb; }
-  td { padding: 16px 20px; font-size: 14px; color: #4b5563; border-bottom: 1px solid #f9fafb; vertical-align: middle; }
+  th { padding: 12px 18px; font-size: 10px; font-weight: 700; color: #8a857e; text-transform: uppercase; border-bottom: 1px solid #e4e0d9; background: #faf8f5; font-family: 'Space Mono', monospace; letter-spacing: 0.5px; }
+  td { padding: 14px 18px; font-size: 13px; color: #5a5650; border-bottom: 1px solid #f0ede8; vertical-align: middle; }
   tr:last-child td { border-bottom: none; }
-  .td-company { font-weight: 600; color: var(--text); }
+  tr:hover td { background: #faf8f5; }
+  .td-company { font-weight: 700; color: #2a2a2a; }
   
-  .match-badge { font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 8px; }
-  .match-high { background: #d1fae5; color: #059669; }
-  .match-mid { background: #fef3c7; color: #d97706; }
-  .match-low { background: #fee2e2; color: #dc2626; }
+  .match-badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-family: 'Space Mono', monospace; }
+  .match-high { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+  .match-mid { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+  .match-low { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
   
-  .btn-text { padding: 6px 12px; font-size: 13px; font-weight: 500; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: #4b5563; cursor: pointer; transition: all 0.2s; margin-right: 8px; }
-  .btn-text:hover { background: #f9fafb; color: var(--text); }
-  .btn-delete { padding: 6px 12px; font-size: 13px; font-weight: 500; border: none; background: transparent; color: #9ca3af; cursor: pointer; }
-  .btn-delete:hover { color: #dc2626; }
+  .btn-text { padding: 5px 12px; font-size: 11px; font-weight: 600; border: 1px solid #e4e0d9; border-radius: 20px; background: #ffffff; color: #5a5650; cursor: pointer; transition: all 0.2s; margin-right: 6px; }
+  .btn-text:hover { border-color: #6b2737; color: #6b2737; }
+  .btn-delete { padding: 5px 10px; font-size: 11px; font-weight: 600; border: none; background: transparent; color: #b0aaa2; cursor: pointer; transition: color 0.2s; }
+  .btn-delete:hover { color: #c1121f; }
   
-  .notes-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15,23,42,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-  .notes-modal { background: var(--surface); border: 1px solid var(--border); box-shadow: 0 20px 40px rgba(0,0,0,0.1); border-radius: 12px; padding: 24px; width: 400px; max-width: 90vw; }
-  .notes-modal h3 { color: var(--text); font-family: 'Inter', sans-serif; margin-bottom: 16px; font-size: 18px; }
-  .notes-modal textarea { background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 12px; width: 100%; height: 150px; padding: 12px; font-family: 'Inter', sans-serif; resize: none; outline: none; margin-bottom: 16px; }
-  .notes-actions { display: flex; gap: 12px; justify-content: flex-end; }
-  .notes-save-btn { background: var(--primary); color: #ffffff; border: none; border-radius: 8px; padding: 8px 16px; cursor: pointer; font-weight: 500; }
-  .notes-close-btn { background: var(--surface); border: 1px solid var(--border); color: #4b5563; border-radius: 8px; padding: 8px 16px; cursor: pointer; font-weight: 500; }
+  .notes-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+  .notes-modal { background: #ffffff; border: 1px solid #e4e0d9; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15); border-radius: 16px; padding: 24px; width: 420px; max-width: 90vw; font-family: 'Outfit', sans-serif; }
+  .notes-modal h3 { color: #2a2a2a; margin-bottom: 14px; font-size: 17px; font-weight: 800; }
+  .notes-modal textarea { background: #faf8f5; border: 1px solid #e4e0d9; color: #2a2a2a; border-radius: 12px; width: 100%; height: 140px; padding: 12px; font-family: inherit; font-size: 13px; resize: none; outline: none; margin-bottom: 16px; }
+  .notes-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .notes-save-btn { background: #6b2737; color: #ffffff; border: none; border-radius: 20px; padding: 8px 18px; cursor: pointer; font-weight: 700; font-size: 12px; }
+  .notes-close-btn { background: #ffffff; border: 1px solid #e4e0d9; color: #5a5650; border-radius: 20px; padding: 8px 16px; cursor: pointer; font-weight: 600; font-size: 12px; }
   
-  .timeline-drawer-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15,23,42,0.4); z-index: 1000; display: flex; justify-content: flex-end; }
-  .timeline-drawer { background: var(--surface); border-left: 1px solid var(--border); width: 350px; height: 100vh; display: flex; flex-direction: column; box-shadow: -10px 0 30px rgba(0,0,0,0.1); }
-  .timeline-drawer-header { border-bottom: 1px solid var(--border); padding: 20px; display: flex; justify-content: space-between; align-items: center; }
-  .timeline-drawer-title { color: var(--text); font-size: 18px; font-weight: 600; margin-bottom: 4px; }
-  .timeline-drawer-sub { color: #6b7280; font-size: 13px; }
-  .timeline-drawer-close { color: #4b5563; background: #f9fafb; border: 1px solid var(--border); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .timeline-drawer-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px); z-index: 1000; display: flex; justify-content: flex-end; }
+  .timeline-drawer { background: #ffffff; border-left: 1px solid #e4e0d9; width: 380px; height: 100vh; display: flex; flex-direction: column; box-shadow: -10px 0 30px rgba(0,0,0,0.1); font-family: 'Outfit', sans-serif; }
+  .timeline-drawer-header { border-bottom: 1px solid #e4e0d9; padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; }
+  .timeline-drawer-title { color: #2a2a2a; font-size: 17px; font-weight: 800; margin-bottom: 2px; }
+  .timeline-drawer-sub { color: #8a857e; font-size: 12px; }
+  .timeline-drawer-close { color: #8a857e; background: #faf8f5; border: 1px solid #e4e0d9; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; }
   .timeline-body { padding: 24px; overflow-y: auto; flex: 1; }
-  .timeline-empty { color: #6b7280; font-size: 14px; text-align: center; padding-top: 40px; }
-  .timeline-list { display: flex; flex-direction: column; gap: 24px; position: relative; }
-  .timeline-list::before { content: ''; position: absolute; left: 5px; top: 10px; bottom: 10px; width: 2px; background: #eaeaea; }
+  .timeline-empty { color: #8a857e; font-size: 13px; text-align: center; padding-top: 40px; }
+  .timeline-list { display: flex; flex-direction: column; gap: 20px; position: relative; }
+  .timeline-list::before { content: ''; position: absolute; left: 5px; top: 10px; bottom: 10px; width: 2px; background: #e4e0d9; }
   .timeline-entry { position: relative; padding-left: 24px; }
-  .timeline-dot { position: absolute; left: 0; top: 4px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; }
-  .timeline-entry-status { color: var(--text); font-weight: 600; font-size: 15px; margin-bottom: 2px; }
-  .timeline-entry-date { color: #6b7280; font-size: 12px; margin-bottom: 8px; }
-  .timeline-entry-note { color: #4b5563; font-size: 13px; background: #f9fafb; padding: 10px; border-radius: 8px; border: 1px solid #eaeaea; }
+  .timeline-dot { position: absolute; left: 0; top: 4px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #ffffff; }
+  .timeline-entry-status { color: #2a2a2a; font-weight: 700; font-size: 14px; margin-bottom: 2px; }
+  .timeline-entry-date { color: #8a857e; font-size: 11px; margin-bottom: 6px; font-family: 'Space Mono', monospace; }
+  .timeline-entry-note { color: #5a5650; font-size: 12px; background: #faf8f5; padding: 10px; border-radius: 8px; border: 1px solid #e4e0d9; }
   
-  .status-dropdown { background: var(--surface); border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.1); border-radius: 12px; position: absolute; top: 100%; left: 0; width: 150px; z-index: 100; margin-top: 4px; padding: 8px; }
-  .status-option { color: var(--text); padding: 8px 12px; font-size: 13px; cursor: pointer; border-radius: 6px; display: flex; align-items: center; }
-  .status-option:hover { background: #f9fafb; }
-
-  /* Base classes for dots and texts */
-  .status-text { font-size: 12px; font-weight: 600; }
-  .s-applied { color: #3b82f6; }
-  .s-interview { color: #f59e0b; }
-  .s-oa { color: #8b5cf6; }
-  .s-offer { color: #10b981; }
-  .s-rejected { color: #ef4444; }
+  .status-dropdown { background: #ffffff; border: 1px solid #e4e0d9; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 12px; position: absolute; top: 100%; left: 0; width: 160px; z-index: 100; margin-top: 4px; padding: 6px; }
+  .status-option { color: #2a2a2a; padding: 6px 10px; font-size: 12px; cursor: pointer; border-radius: 6px; display: flex; align-items: center; font-weight: 600; }
+  .status-option:hover { background: #faf8f5; color: #6b2737; }
 `;
-
-const statConfig = {
-  Applied:  { color: "#3b82f6", glow: "rgba(59,130,246,0.4)" },
-  Interview:{ color: "#f59e0b", glow: "rgba(245,158,11,0.4)" },
-  OA:       { color: "#8b5cf6", glow: "rgba(139,92,246,0.4)" },
-  Offer:    { color: "#10b981", glow: "rgba(16,185,129,0.4)" },
-  Rejected: { color: "#ef4444", glow: "rgba(239,68,68,0.4)" },
-};
-
 
 function StatusCell({ item, onStatusChange }) {
   const [open, setOpen] = useState(false);
@@ -256,6 +266,7 @@ export default function Dashboard() {
   const [hasResume, setHasResume] = useState(false);          // V2.0
   const [viewMode, setViewMode] = useState("list");           // 'list' or 'board'
   const [aiTarget, setAiTarget] = useState(null);
+  const [aiInitialTab, setAiInitialTab] = useState("email");
   const [showScanner, setShowScanner] = useState(false);
   const [toast, setToast] = useState({ message: "", type: "success" });
   const isSyncing = React.useRef(false);
@@ -352,7 +363,7 @@ export default function Dashboard() {
       setTimeout(() => {
         window.removeEventListener("message", handler);
         resolve(null);
-      }, 1000);
+      }, 2500);
     });
 
     const items = await getPending();
@@ -748,90 +759,144 @@ const handleSaveNotes = async (id, notes) => {
         </div>
       )}
 
-      <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)', fontFamily: "'Inter', -apple-system, sans-serif" }}>
+      <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)', fontFamily: "'Outfit', -apple-system, sans-serif" }}>
         <Sidebar />
         <div className="main" style={{ display: 'flex', flexDirection: 'column' }}>
           
-          <div className="top-row">
+          {/* TOP HEADER */}
+          <div className="top-row animate-in">
             <div className="top-left">
-              <div className="header-date">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</div>
-              <div className="header-greeting">Good morning, {user.name || "User"}</div>
+              <div className="header-date">
+                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+              </div>
+              <div className="header-greeting">Welcome back, {user.name || "Kanu"}</div>
+              <div className="header-sub">
+                You have <strong style={{ color: '#2a2a2a' }}>{internships.filter(i => !['Rejected', 'Offer'].includes(i.status)).length} active applications</strong> and <strong style={{ color: '#2a2a2a' }}>{summary['Offer'] || 0} offers</strong> on the table.
+              </div>
             </div>
+
             <div className="top-right">
-              <div className="metric-box">
-                <span className="metric-label">Career Score</span>
-                <span className="metric-value">{careerScore}</span>
+              {/* Animated Radial Score Gauge */}
+              <div className="score-widget hover-lift">
+                <div style={{ position: 'relative', width: 44, height: 44 }}>
+                  <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
+                    <path d="M18 2.5a15.5 15.5 0 110 31 15.5 15.5 0 010-31" fill="none" stroke="#eae7e2" strokeWidth="3" />
+                    <path d="M18 2.5a15.5 15.5 0 110 31 15.5 15.5 0 010-31" fill="none" stroke="#6b2737" strokeWidth="3" strokeDasharray={`${careerScore}, 100`} strokeLinecap="round" className="score-circle" />
+                  </svg>
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800 }}>
+                    {careerScore}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '10px', fontWeight: 700, color: '#8a857e', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Career Score</div>
+                  <div className="mono" style={{ fontSize: '10px', color: '#166534', fontWeight: 700 }}>+12% active</div>
+                </div>
               </div>
-              <div className="metric-box">
-                <span className="metric-label">Total Applications</span>
-                <span className="metric-value">{internships.length}</span>
-              </div>
-              <button className="add-btn" style={{ background: '#3b82f6' }} onClick={() => setShowScanner(true)}>
-                📥 Scan Email
+
+              <button className="scan-btn" onClick={() => setShowScanner(true)}>
+                <span className="pulse-dot" style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
+                📥 Scan Gmail
               </button>
-              <a href="/add" className="add-btn">+ Add Internship</a>
+              <a href="/add" className="add-btn">+ Add Application</a>
             </div>
           </div>
 
-          {syncMsg && <div style={{ background: '#d1fae5', color: '#059669', padding: '10px 16px', borderRadius: '6px', marginBottom: '20px', fontSize: '13px' }}>{syncMsg}</div>}
-
-          {!loading && (
-            <div className="row-1">
-              <div className="card">
-                <div className="card-title">{nba.icon} Next Best Action</div>
-                <div className="nba-msg">{nba.msg}</div>
-                {nba.action && (
-                  <a href={nba.link || "#"} className="nba-link" target={nba.link?.startsWith('http') ? '_blank' : '_self'}>
-                    {nba.action} →
-                  </a>
-                )}
-              </div>
-              
-              <div className="card">
-                <div className="card-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Needs Attention</div>
-                {staleApps.length === 0 ? (
-                  <div style={{ color: '#6b7280', fontSize: '14px' }}>All caught up!</div>
-                ) : (
-                  <div className="stale-list">
-                    {staleApps.slice(0, 4).map(app => (
-                      <div key={app._id} className="stale-item">
-                        <div className="stale-info">
-                          <div className="stale-dot" style={{ background: app.staleDays >= 14 ? '#ef4444' : app.staleDays >= 10 ? '#f59e0b' : '#3b82f6' }}></div>
-                          <span><strong>{app.company}</strong> — {app.status}</span>
-                        </div>
-                        <span className="stale-days">{app.staleDays}d ago</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+          {syncMsg && (
+            <div style={{ background: '#dcfce7', color: '#166534', border: '1px solid #86efac', padding: '10px 16px', borderRadius: '12px', marginBottom: '20px', fontSize: '13px', fontWeight: 600 }}>
+              ✓ {syncMsg}
             </div>
           )}
 
-          <div className="row-2">
-            <div className="card">
-              <div className="card-title">Status Summary</div>
-              <div className="status-blocks">
-                {['Applied', 'Interview', 'OA', 'Offer', 'Rejected'].map(status => (
-                  <div className="status-block" key={status} onClick={() => setFilterStatus(filterStatus === status ? "All" : status)} style={{ cursor: 'pointer' }}>
-                    <div className="status-val">{summary[status] || 0}</div>
-                    <div className="status-lbl">{status}</div>
+          {/* PRIORITY ACTION STACK */}
+          {!loading && (
+            <div className="priority-stack animate-in">
+              <div className="priority-header">
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#6b2737', display: 'inline-block' }}></span>
+                Immediate Priority Actions
+              </div>
+
+              {/* Next Best Action Card */}
+              {nba && nba.msg && (
+                <div className="priority-card">
+                  <div className="priority-stripe-urgent"></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <strong style={{ fontSize: '15px', color: '#2a2a2a' }}>Next Best Action</strong>
+                        <span className="stamp" style={{ color: '#92400e', borderColor: '#e9c46a' }}>🔥 Priority #1</span>
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#5a5650' }}>{nba.msg}</div>
+                    </div>
+                    {nba.action && (
+                      <a href={nba.link || "#"} className="add-btn" style={{ padding: '6px 14px', fontSize: '11px' }} target={nba.link?.startsWith('http') ? '_blank' : '_self'} rel="noreferrer">
+                        {nba.action} →
+                      </a>
+                    )}
                   </div>
-                ))}
+                </div>
+              )}
+
+              {/* Needs Attention Items */}
+              {staleApps.slice(0, 2).map(app => (
+                <div key={app._id} className="priority-card">
+                  <div className={app.staleDays >= 14 ? "priority-stripe-urgent" : "priority-stripe-soon"}></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                        <strong style={{ fontSize: '14px', color: '#2a2a2a' }}>{app.company}</strong>
+                        <span className="stamp" style={{ color: app.staleDays >= 14 ? '#991b1b' : '#b45309', borderColor: app.staleDays >= 14 ? '#fca5a5' : '#fde68a' }}>
+                          Stale · {app.staleDays}d
+                        </span>
+                        {app.emailSource && <span>📧</span>}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#8a857e' }}>{app.role} — No status update recorded. Follow up with recruiter?</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button className="btn-text" onClick={() => handleEdit(app._id)}>Edit</button>
+                      <button className="btn-text" style={{ color: '#6b2737', fontWeight: 700 }} onClick={() => { setAiInitialTab("followup"); setAiTarget(app); }}>👻 Follow-Up</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* STATUS SUMMARY + CLOSING SOON */}
+          <div className="row-2 animate-in">
+            <div className="card">
+              <div className="card-title">Pipeline Breakdown</div>
+              <div className="status-blocks">
+                {['Applied', 'Interview', 'OA', 'Offer', 'Rejected'].map(status => {
+                  const statusColors = {
+                    Applied: '#3a86ff', Interview: '#c17817', OA: '#8338ec', Offer: '#2d6a4f', Rejected: '#8a857e'
+                  };
+                  return (
+                    <div 
+                      className={`status-block ${filterStatus === status ? 'active' : ''}`} 
+                      key={status} 
+                      onClick={() => setFilterStatus(filterStatus === status ? "All" : status)}
+                    >
+                      <div className="status-val" style={{ color: statusColors[status] || '#2a2a2a' }}>
+                        {summary[status] || 0}
+                      </div>
+                      <div className="status-lbl">{status}</div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
             
             <div className="card">
-              <div className="card-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Closing Soon</div>
+              <div className="card-title">Closing Deadlines</div>
               {closingSoon.length === 0 ? (
-                <div style={{ fontSize: '13px', color: '#6b7280', padding: '16px 0' }}>No upcoming deadlines</div>
+                <div style={{ fontSize: '12px', color: '#8a857e', padding: '12px 0' }}>No deadlines in the next 7 days.</div>
               ) : (
                 <div className="closing-list">
-                  {closingSoon.map((item) => (
+                  {closingSoon.slice(0, 3).map((item) => (
                     <div key={item._id} className="closing-item">
                       <span className="closing-company" title={`${item.company} — ${item.role}`}>{item.company}</span>
                       <span className={`closing-days ${item.daysLeft === 0 ? 'badge-urgent' : item.daysLeft <= 3 ? 'badge-soon' : 'badge-ok'}`}>
-                        {item.daysLeft === 0 ? 'Today!' : item.daysLeft === 1 ? 'Tomorrow' : `${item.daysLeft}d`}
+                        {item.daysLeft === 0 ? 'Today!' : item.daysLeft === 1 ? 'Tomorrow' : `${item.daysLeft}d left`}
                       </span>
                     </div>
                   ))}
@@ -840,40 +905,49 @@ const handleSaveNotes = async (id, notes) => {
             </div>
           </div>
 
-          <div className="row-3">
+
+
+          {/* MAIN PIPELINE (SEARCH + VIEW TOGGLE + TABLE/BOARD) */}
+          <div className="row-3 animate-in">
             <div className="filters">
-              <input type="text" className="filter-input" placeholder="Search company or role..." value={search} onChange={e => setSearch(e.target.value)} />
+              <input 
+                type="text" 
+                className="filter-input" 
+                placeholder="Search company or role..." 
+                value={search} 
+                onChange={e => setSearch(e.target.value)} 
+              />
               <select className="filter-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-                <option value="All">All Status</option>
-                {Object.keys(summary).map(s => <option key={s} value={s}>{s}</option>)}
+                <option value="All">All Statuses ({internships.length})</option>
+                {Object.keys(summary).map(s => <option key={s} value={s}>{s} ({summary[s]})</option>)}
               </select>
               <select className="filter-select" value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
                 <option value="newest">Newest First</option>
                 <option value="oldest">Oldest First</option>
               </select>
 
-              <div style={{ display: 'flex', background: '#f3f4f6', borderRadius: '8px', padding: '4px' }}>
+              <div className="view-toggle">
                 <button 
                   onClick={() => setViewMode('list')} 
-                  style={{ background: viewMode === 'list' ? '#fff' : 'transparent', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: viewMode === 'list' ? 600 : 400, boxShadow: viewMode === 'list' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none' }}>
-                  List
+                  className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}>
+                  Feed List
                 </button>
                 <button 
                   onClick={() => setViewMode('board')} 
-                  style={{ background: viewMode === 'board' ? '#fff' : 'transparent', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: viewMode === 'board' ? 600 : 400, boxShadow: viewMode === 'board' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none' }}>
-                  Board
+                  className={`view-toggle-btn ${viewMode === 'board' ? 'active' : ''}`}>
+                  Board View
                 </button>
               </div>
             </div>
 
-            <div className="table-card" style={viewMode === 'board' ? { border: 'none', background: 'transparent' } : {}}>
+            <div className="table-card" style={viewMode === 'board' ? { border: 'none', background: 'transparent', boxShadow: 'none' } : {}}>
               {loading ? (
-                <div style={{ padding: '60px', textAlign: 'center', color: '#6b7280' }}>Loading your applications...</div>
+                <div style={{ padding: '60px', textAlign: 'center', color: '#8a857e' }}>Loading your applications...</div>
               ) : filteredInternships.length === 0 ? (
-                <div style={{ padding: '60px', textAlign: 'center', color: '#6b7280' }}>
-                  <div style={{ marginBottom: '16px', color: '#9ca3af' }}><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
-                  <div style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>No internships yet</div>
-                  <div style={{ fontSize: '13px' }}>Start tracking your applications and stay organized.</div>
+                <div style={{ padding: '60px', textAlign: 'center', color: '#8a857e' }}>
+                  <div style={{ marginBottom: '12px', fontSize: '28px' }}>📂</div>
+                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#2a2a2a', marginBottom: '4px' }}>No applications match your filter</div>
+                  <div style={{ fontSize: '12px' }}>Try searching another keyword or logging a new application.</div>
                 </div>
               ) : viewMode === 'board' ? (
                 <KanbanBoard 
@@ -882,7 +956,9 @@ const handleSaveNotes = async (id, notes) => {
                   onActionClick={(action, item) => {
                     if (action === 'timeline') setTimelineTarget(item);
                     if (action === 'notes') setNotesTarget(item);
-                    if (action === 'ai') setAiTarget(item);
+                    if (action === 'ai') { setAiInitialTab("email"); setAiTarget(item); }
+                    if (action === 'followup') { setAiInitialTab("followup"); setAiTarget(item); }
+                    if (action === 'ats') { setAiInitialTab("ats"); setAiTarget(item); }
                   }}
                 />
               ) : (
@@ -900,26 +976,36 @@ const handleSaveNotes = async (id, notes) => {
                   <tbody>
                     {filteredInternships.map(item => (
                       <tr key={item._id}>
-                        <td className="td-company">{item.company}</td>
+                        <td className="td-company">
+                          {item.company}
+                          {item.emailSource && <span title="Updated via Email" style={{ marginLeft: '6px', fontSize: '12px' }}>📧</span>}
+                        </td>
                         <td className="td-role">
                           {item.role}
                           {item.resumeUsed && (
-                            <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>📄 {item.resumeUsed}</div>
+                            <div style={{ fontSize: '10px', color: '#8a857e', marginTop: '2px' }}>📄 {item.resumeUsed}</div>
                           )}
                         </td>
                         <td><StatusCell item={item} onStatusChange={handleStatusChange} /></td>
-                        <td className="td-date">{item.appliedDate}</td>
+                        <td className="td-date mono" style={{ fontSize: '11px', color: '#8a857e' }}>{item.appliedDate}</td>
                         <td>
                           {item.matchScore != null ? (
-                            <span className={`match-badge ${item.matchScore >= 80 ? 'match-high' : item.matchScore >= 50 ? 'match-mid' : 'match-low'}`}>{item.matchScore}%</span>
+                            <span 
+                              className={`match-badge ${item.matchScore >= 80 ? 'match-high' : item.matchScore >= 50 ? 'match-mid' : 'match-low'}`}
+                              style={{ cursor: 'pointer' }}
+                              title="Click for ATS Keyword Audit"
+                              onClick={() => { setAiInitialTab("ats"); setAiTarget(item); }}
+                            >
+                              {item.matchScore}%
+                            </span>
                           ) : hasResume ? (
                             <button className="btn-text" disabled={matchingId === item._id} onClick={() => handleMatchScore(item)}>{matchingId === item._id ? '...' : 'Check'}</button>
                           ) : (
-                            <a href="/resume" style={{fontSize: '12px', color: '#6b7280', textDecoration: 'none'}}>+ Resume</a>
+                            <a href="/resume" style={{fontSize: '11px', color: '#8a857e', textDecoration: 'none'}}>+ Resume</a>
                           )}
                         </td>
                         <td className="td-actions">
-                          <button className="btn-text" style={{ color: '#b5763b' }} onClick={() => setAiTarget(item)}>✨ AI Assist</button>
+                          <button className="btn-text" style={{ color: '#6b2737', borderColor: '#e4e0d9' }} onClick={() => { setAiInitialTab("email"); setAiTarget(item); }}>✨ AI</button>
                           <button className="btn-text" onClick={() => setTimelineTarget(item)}>Timeline</button>
                           <button className="btn-text" onClick={() => setNotesTarget(item)}>Notes</button>
                           <button className="btn-text" onClick={() => handleEdit(item._id)}>Edit</button>
@@ -938,14 +1024,17 @@ const handleSaveNotes = async (id, notes) => {
       {aiTarget && (
         <AIAssistModal
           internship={aiTarget}
+          initialTab={aiInitialTab}
           onClose={() => setAiTarget(null)}
         />
       )}
 
       {showScanner && (
         <EmailScannerModal
+          internships={internships}
           onClose={() => setShowScanner(false)}
           onUpdateSuccess={(updatedItem) => {
+            setInternships(prev => prev.map(item => item._id === updatedItem._id ? updatedItem : item));
             fetchInternships();
             setToast({
               message: `Updated ${updatedItem.company} status to "${updatedItem.status}"!`,

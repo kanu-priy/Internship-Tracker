@@ -4,14 +4,12 @@ import Toast from "../components/Toast";
 import { useNavigate } from "react-router-dom";
 
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
   .account-root {
     display: flex;
     min-height: 100vh;
-    background: var(--bg);
-    font-family: 'Inter', -apple-system, sans-serif;
-    color: var(--text);
+    background: #f5f3ef;
+    font-family: 'Outfit', -apple-system, sans-serif;
+    color: #2a2a2a;
   }
 
   .account-main-wrap {
@@ -25,11 +23,11 @@ const styles = `
   .account-card {
     width: 100%;
     max-width: 520px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    background: #ffffff;
+    border: 1px solid #e4e0d9;
+    border-radius: 16px;
     padding: 40px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+    box-shadow: 0 4px 20px rgba(107, 39, 55, 0.04);
   }
 
   .account-header {
@@ -41,44 +39,45 @@ const styles = `
     width: 80px;
     height: 80px;
     border-radius: 50%;
-    background: #f3f4f6;
-    border: 1px solid var(--border);
+    background: #faf8f5;
+    border: 2px solid #e4e0d9;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 700;
+    font-weight: 800;
     font-size: 32px;
-    color: #111827;
+    color: #6b2737;
     margin: 0 auto 16px auto;
   }
 
   .account-name {
-    font-size: 22px;
-    font-weight: 700;
-    color: #111827;
+    font-size: 24px;
+    font-weight: 800;
+    color: #2a2a2a;
     margin-bottom: 4px;
+    letter-spacing: -0.4px;
   }
 
   .account-email {
-    font-size: 14px;
-    color: #6b7280;
+    font-size: 13px;
+    color: #8a857e;
   }
 
   .section-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #111827;
+    font-size: 12px;
+    font-weight: 700;
+    color: #8a857e;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 16px;
     padding-bottom: 8px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid #e4e0d9;
   }
 
   .pref-group {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
     margin-bottom: 32px;
   }
 
@@ -87,9 +86,9 @@ const styles = `
     justify-content: space-between;
     align-items: center;
     padding: 14px 16px;
-    background: #fafbfc;
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    background: #faf8f5;
+    border: 1px solid #e4e0d9;
+    border-radius: 12px;
   }
 
   .pref-info {
@@ -100,13 +99,13 @@ const styles = `
 
   .pref-title {
     font-size: 14px;
-    font-weight: 600;
-    color: #111827;
+    font-weight: 700;
+    color: #2a2a2a;
   }
 
   .pref-desc {
     font-size: 12px;
-    color: #6b7280;
+    color: #8a857e;
   }
 
   .switch {

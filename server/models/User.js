@@ -12,6 +12,8 @@ const UserSchema = new mongoose.Schema({
     staleAlerts: { type: Boolean, default: true },
     weeklyDigest: { type: Boolean, default: true },
   },
+  // ── Webhook API Key ────────────────────────────────────────────────────
+  apiKey: { type: String, default: "" },
   createdAt:  { type: Date, default: Date.now },
 });
 

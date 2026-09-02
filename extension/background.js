@@ -36,6 +36,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: true });
       }
     );
+    return true;
   }
 
 // 2. Deadline Alarm — every 3 hours via chrome.alarms

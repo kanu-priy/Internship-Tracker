@@ -38,6 +38,13 @@ const InternshipSchema = new mongoose.Schema(
     // ── Resume match score (0–100 or null) ────────────────────────────────
     matchScore:     { type: Number, default: null },
 
+    // ── Email Sync & Automation Metadata ───────────────────────────────
+    emailSource:          { type: Boolean, default: false },
+    lastEmailDate:        { type: String, default: "" },
+    emailHashes:          { type: [String], default: [] },
+    autoAddedFromEmail:   { type: Boolean, default: false },
+    copiedFrom:           { type: String, default: "" },
+
     // ── Per-application status history ────────────────────────────────────
     timeline: { type: [TimelineEntrySchema], default: [] },
   },

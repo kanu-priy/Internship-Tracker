@@ -2,26 +2,24 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
   .reg-root {
     min-height: 100vh;
-    background: #fafbfc;
+    background: #f5f3ef;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Inter', -apple-system, sans-serif;
+    font-family: 'Outfit', -apple-system, sans-serif;
   }
 
   .reg-card {
     width: 100%;
-    max-width: 400px;
+    max-width: 420px;
     margin: 20px;
-    background: #fff;
-    border: 1px solid #eaeaea;
-    border-radius: 12px;
+    background: #ffffff;
+    border: 1px solid #e4e0d9;
+    border-radius: 16px;
     padding: 40px;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 20px rgba(107, 39, 55, 0.04);
   }
 
   .reg-logo {
@@ -29,49 +27,55 @@ const styles = `
     align-items: center;
     justify-content: center;
     gap: 10px;
-    margin-bottom: 32px;
+    margin-bottom: 28px;
     text-decoration: none;
   }
 
   .reg-logo-icon {
-    width: 32px;
-    height: 32px;
-    color: #0f172a;
+    width: 36px;
+    height: 36px;
+    background: #6b2737;
+    border-radius: 10px;
+    color: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-weight: 800;
+    font-size: 16px;
+    box-shadow: 0 4px 12px rgba(107, 39, 55, 0.25);
   }
 
   .reg-logo-text {
-    font-weight: 700;
+    font-weight: 800;
     font-size: 24px;
-    color: #111827;
+    color: #2a2a2a;
     letter-spacing: -0.5px;
   }
 
-  .reg-logo-text span { color: #0f172a; }
+  .reg-logo-text span { color: #6b2737; }
 
   .reg-title {
-    font-weight: 600;
-    font-size: 20px;
-    color: #111827;
-    margin-bottom: 8px;
+    font-weight: 800;
+    font-size: 22px;
+    color: #2a2a2a;
+    margin-bottom: 4px;
     text-align: center;
+    letter-spacing: -0.3px;
   }
 
   .reg-subtitle {
-    font-size: 14px;
-    color: #6b7280;
-    margin-bottom: 32px;
+    font-size: 13px;
+    color: #8a857e;
+    margin-bottom: 28px;
     text-align: center;
   }
 
   .reg-error {
-    background: #fce8e6;
-    border: 1px solid #b54d42;
-    color: #b54d42;
-    font-size: 14px;
-    padding: 12px 16px;
+    background: #fee2e2;
+    border: 1px solid #fca5a5;
+    color: #991b1b;
+    font-size: 13px;
+    padding: 10px 14px;
     border-radius: 8px;
     margin-bottom: 20px;
   }
@@ -82,63 +86,66 @@ const styles = `
 
   .input-label {
     display: block;
-    font-size: 13px;
-    font-weight: 500;
-    color: #6b7280;
+    font-size: 11px;
+    font-weight: 700;
+    color: #8a857e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     margin-bottom: 6px;
   }
 
   .reg-input {
     width: 100%;
-    padding: 12px 14px;
-    background: #fff;
-    border: 1px solid #eaeaea;
-    border-radius: 8px;
-    color: #111827;
-    font-size: 14px;
-    font-family: 'Inter', -apple-system, sans-serif;
+    padding: 11px 14px;
+    background: #faf8f5;
+    border: 1px solid #e4e0d9;
+    border-radius: 10px;
+    color: #2a2a2a;
+    font-size: 13px;
+    font-family: 'Outfit', -apple-system, sans-serif;
     outline: none;
-    transition: all 0.2s ease;
+    transition: border-color 0.2s, background 0.2s;
     box-sizing: border-box;
   }
-
-  .reg-input::placeholder { color: #9e9890; }
-
+  .reg-input::placeholder { color: #b0aaa2; }
   .reg-input:focus {
-    border-color: #0f172a;
-    box-shadow: 0 0 0 3px rgba(59, 111, 181, 0.1);
+    border-color: #6b2737;
+    background: #ffffff;
   }
 
   .reg-btn {
     width: 100%;
     padding: 12px;
-    margin-top: 8px;
-    background: #0f172a;
+    margin-top: 10px;
+    background: #6b2737;
     border: none;
-    border-radius: 8px;
+    border-radius: 20px;
     color: #fff;
-    font-weight: 600;
+    font-family: 'Outfit', -apple-system, sans-serif;
+    font-weight: 700;
     font-size: 14px;
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: background 0.2s, transform 0.1s;
+    box-shadow: 0 4px 14px rgba(107, 39, 55, 0.25);
   }
 
   .reg-btn:hover:not(:disabled) {
-    background: #1e293b;
+    background: #541e2b;
+    transform: translateY(-1px);
   }
   .reg-btn:disabled { opacity: 0.7; cursor: not-allowed; }
 
   .reg-footer {
     text-align: center;
     margin-top: 24px;
-    font-size: 14px;
-    color: #6b7280;
+    font-size: 13px;
+    color: #8a857e;
   }
 
   .reg-footer a {
-    color: #0f172a;
+    color: #6b2737;
     text-decoration: none;
-    font-weight: 500;
+    font-weight: 700;
   }
   .reg-footer a:hover { text-decoration: underline; }
 `;

@@ -2,15 +2,13 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
   .add-root {
     min-height: 100vh;
-    background: #fafbfc;
+    background: #f5f3ef;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Inter', -apple-system, sans-serif;
+    font-family: 'Outfit', -apple-system, sans-serif;
     padding: 40px 20px;
     box-sizing: border-box;
   }
@@ -18,118 +16,124 @@ const styles = `
   .add-card {
     width: 100%;
     max-width: 800px;
-    background: #fff;
-    border: 1px solid #eaeaea;
-    border-radius: 12px;
+    background: #ffffff;
+    border: 1px solid #e4e0d9;
+    border-radius: 16px;
     padding: 40px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 20px rgba(107, 39, 55, 0.04);
   }
 
   .add-back {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 14px;
-    color: #6b7280;
+    font-size: 13px;
+    font-weight: 600;
+    color: #8a857e;
     text-decoration: none;
     margin-bottom: 24px;
     transition: color 0.2s;
   }
-  .add-back:hover { color: #111827; }
+  .add-back:hover { color: #6b2737; }
 
   .add-title {
-    font-weight: 700;
+    font-weight: 800;
     font-size: 28px;
-    color: #111827;
-    margin: 0 0 8px 0;
+    color: #2a2a2a;
+    margin: 0 0 4px 0;
+    letter-spacing: -0.5px;
   }
 
   .add-subtitle {
-    font-size: 15px;
-    color: #6b7280;
-    margin: 0 0 32px 0;
+    font-size: 14px;
+    color: #8a857e;
+    margin: 0 0 28px 0;
   }
 
   .add-grid-form {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 24px;
-    margin-bottom: 32px;
+    margin-bottom: 28px;
   }
   
   .form-col {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 18px;
   }
 
-  .input-group { display: flex; flex-direction: column; gap: 8px; }
+  .input-group { display: flex; flex-direction: column; gap: 6px; }
 
   .add-label {
-    font-size: 13px;
-    font-weight: 600;
-    color: #111827;
+    font-size: 11px;
+    font-weight: 700;
+    color: #8a857e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   .add-input, .add-textarea {
-    padding: 12px 14px;
-    background: #fff;
-    border: 1px solid #eaeaea;
-    border-radius: 8px;
-    color: #111827;
-    font-size: 14px;
-    font-family: 'Inter', -apple-system, sans-serif;
+    padding: 11px 14px;
+    background: #faf8f5;
+    border: 1px solid #e4e0d9;
+    border-radius: 10px;
+    color: #2a2a2a;
+    font-size: 13px;
+    font-family: 'Outfit', -apple-system, sans-serif;
     outline: none;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, background 0.2s;
     width: 100%;
     box-sizing: border-box;
   }
-  .add-input::placeholder, .add-textarea::placeholder { color: #b5b0a8; }
+  .add-input::placeholder, .add-textarea::placeholder { color: #b0aaa2; }
   .add-input:focus, .add-textarea:focus {
-    border-color: #0f172a;
+    border-color: #6b2737;
+    background: #ffffff;
   }
   .add-textarea {
     resize: vertical;
-    min-height: 100px;
+    min-height: 90px;
   }
 
   .add-btn {
     width: 100%;
-    padding: 14px;
-    background: #0f172a;
+    padding: 12px;
+    background: #6b2737;
     border: none;
-    border-radius: 8px;
+    border-radius: 20px;
     color: #fff;
-    font-family: 'Inter', -apple-system, sans-serif;
-    font-weight: 600;
-    font-size: 15px;
+    font-family: 'Outfit', -apple-system, sans-serif;
+    font-weight: 700;
+    font-size: 14px;
     cursor: pointer;
-    transition: background 0.2s;
-    margin-top: 12px;
+    transition: background 0.2s, transform 0.1s;
+    box-shadow: 0 4px 14px rgba(107, 39, 55, 0.25);
   }
-  .add-btn:hover { background: #1e293b; }
+  .add-btn:hover { background: #541e2b; transform: translateY(-1px); }
 
   /* Status selector pills */
   .status-pills { display: flex; gap: 8px; flex-wrap: wrap; }
   .status-pill {
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
     cursor: pointer;
-    border: 1px solid #eaeaea;
-    background: #fafbfc;
-    color: #6b7280;
+    border: 1.5px solid #e4e0d9;
+    background: #faf8f5;
+    color: #8a857e;
     transition: all 0.2s;
+    text-transform: uppercase;
   }
-  .status-pill:hover { border-color: #b5b0a8; color: #111827; }
+  .status-pill:hover { border-color: #6b2737; color: #6b2737; }
   
-  .status-pill.active-Applied { background: #0f172a; border-color: #0f172a; color: #fff; }
-  .status-pill.active-Interview { background: #b5763b; border-color: #b5763b; color: #fff; }
-  .status-pill.active-OA { background: #7b5ea7; border-color: #7b5ea7; color: #fff; }
-  .status-pill.active-Offer { background: #4a8c6a; border-color: #4a8c6a; color: #fff; }
-  .status-pill.active-Rejected { background: #b54d42; border-color: #b54d42; color: #fff; }
-  .status-pill.active-NoResponse { background: #9e9890; border-color: #9e9890; color: #fff; }
+  .status-pill.active-Applied { background: #6b2737; border-color: #6b2737; color: #fff; }
+  .status-pill.active-Interview { background: #c17817; border-color: #c17817; color: #fff; }
+  .status-pill.active-OA { background: #8338ec; border-color: #8338ec; color: #fff; }
+  .status-pill.active-Offer { background: #2d6a4f; border-color: #2d6a4f; color: #fff; }
+  .status-pill.active-Rejected { background: #8a857e; border-color: #8a857e; color: #fff; }
+  .status-pill.active-NoResponse { background: #b0aaa2; border-color: #b0aaa2; color: #fff; }
 `;
 
 export default function AddInternship() {

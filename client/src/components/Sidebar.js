@@ -1,57 +1,82 @@
 import { useLocation, Link } from "react-router-dom";
 
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
   .sidebar {
     width: 240px;
     min-height: 100vh;
-    background: #ffffff;
-    border-right: 1px solid #eaeaea;
+    background: #f0ede8;
+    border-right: 1px solid #e4e0d9;
     display: flex;
     flex-direction: column;
-    padding: 28px 0;
-    font-family: 'Inter', -apple-system, sans-serif;
+    padding: 24px 0;
+    font-family: 'Outfit', -apple-system, sans-serif;
     flex-shrink: 0;
     position: relative;
-    overflow: hidden;
   }
 
   .sidebar-logo {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 0 24px;
-    margin-bottom: 36px;
+    gap: 12px;
+    padding: 0 20px;
+    margin-bottom: 32px;
     text-decoration: none;
   }
 
   .sidebar-logo-icon {
-    width: 32px;
-    height: 32px;
-    background: #0f172a;
-    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    background: #6b2737;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
     color: #ffffff;
+    font-size: 16px;
+    font-weight: 800;
+    box-shadow: 0 4px 12px rgba(107, 39, 55, 0.25);
+    transition: transform 0.2s ease;
+  }
+
+  .sidebar-logo:hover .sidebar-logo-icon {
+    transform: rotate(6deg) scale(1.04);
+  }
+
+  .sidebar-logo-text-wrap {
+    display: flex;
+    flex-direction: column;
   }
 
   .sidebar-logo-text {
-    font-weight: 700;
+    font-weight: 800;
     font-size: 18px;
-    color: #111827;
-    letter-spacing: -0.3px;
+    color: #2a2a2a;
+    letter-spacing: -0.4px;
+    line-height: 1.1;
+  }
+
+  .sidebar-logo-text span {
+    color: #6b2737;
+  }
+
+  .sidebar-logo-sub {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    color: #8a857e;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 2px;
   }
 
   .sidebar-section-label {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 1.5px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
     text-transform: uppercase;
-    color: #6b7280;
-    padding: 0 24px;
+    color: #8a857e;
+    padding: 0 20px;
     margin-bottom: 12px;
   }
 
@@ -61,36 +86,38 @@ const styles = `
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
   }
 
   .sidebar-link {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 10px 16px;
-    font-size: 14px;
-    font-weight: 500;
-    color: #4b5563;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #6a655e;
     text-decoration: none;
     transition: all 0.2s ease;
-    border-radius: 8px;
+    border-radius: 12px;
   }
 
   .sidebar-link:hover {
-    background: #f3f4f6;
-    color: #111827;
+    background: rgba(107, 39, 55, 0.06);
+    color: #2a2a2a;
+    transform: translateX(2px);
   }
 
   .sidebar-link.active {
-    background: #0f172a;
+    background: #6b2737;
     color: #ffffff;
+    box-shadow: 0 4px 14px rgba(107, 39, 55, 0.28);
   }
 
   .sidebar-link-icon {
-    width: 18px;
-    height: 18px;
-    opacity: 0.7;
+    width: 17px;
+    height: 17px;
+    opacity: 0.85;
     flex-shrink: 0;
   }
 
@@ -98,13 +125,14 @@ const styles = `
 
   .sidebar-footer {
     margin-top: auto;
-    padding: 16px 24px;
-    border-top: 1px solid #eaeaea;
+    padding: 16px 20px;
+    border-top: 1px solid #e4e0d9;
   }
 
   .sidebar-version {
-    font-size: 12px;
-    color: #6b7280;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: #8a857e;
   }
 `;
 
@@ -121,7 +149,7 @@ const navItems = [
   },
   {
     href: "/add",
-    label: "Add Internship",
+    label: "Add Application",
     icon: (
       <svg className="sidebar-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10"/>
@@ -152,6 +180,16 @@ const navItems = [
       </svg>
     ),
   },
+  {
+    href: "/integrations",
+    label: "Data & Tools",
+    icon: (
+      <svg className="sidebar-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="2" width="8" height="8" rx="2"/><rect x="14" y="2" width="8" height="8" rx="2"/>
+        <rect x="14" y="14" width="8" height="8" rx="2"/><path d="M6 10v4a2 2 0 0 0 2 2h4"/>
+      </svg>
+    ),
+  },
 ];
 
 export default function Sidebar() {
@@ -162,17 +200,14 @@ export default function Sidebar() {
       <style>{styles}</style>
       <div className="sidebar">
         <Link to="/dashboard" className="sidebar-logo">
-          <div className="sidebar-logo-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width: '100%', height: '100%'}}>
-              <path d="M8 2h8l4 10H4L8 2Z"/>
-              <path d="M12 12v6"/>
-              <path d="M8 22v-2c0-1.1.9-2 2-2h4a2 2 0 0 1 2 2v2H8Z"/>
-            </svg>
+          <div className="sidebar-logo-icon">D</div>
+          <div className="sidebar-logo-text-wrap">
+            <div className="sidebar-logo-text">deadline<span>desk</span></div>
+            <div className="sidebar-logo-sub">Career Hub</div>
           </div>
-          <div className="sidebar-logo-text">DeadlineDesk</div>
         </Link>
 
-        <div className="sidebar-section-label">Menu</div>
+        <div className="sidebar-section-label">Navigation</div>
 
         <ul className="sidebar-nav">
           {navItems.map(({ href, label, icon }) => {
@@ -189,7 +224,7 @@ export default function Sidebar() {
         </ul>
 
         <div className="sidebar-footer">
-          <div className="sidebar-version">DeadlineDesk v2.0</div>
+          <div className="sidebar-version">v3.0 • Bespoke Studio</div>
         </div>
       </div>
     </>
