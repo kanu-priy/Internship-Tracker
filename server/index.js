@@ -16,6 +16,7 @@ function getAIClient() {
 
 const User = require("./models/User");
 const Internship = require("./models/Internship");
+const Contact = require("./models/Contact");
 
 const app = express();
 app.use(cors());
@@ -672,6 +673,295 @@ Instructions:
     const candidateName = user?.name || "Candidate";
     const smartFollowUp = `Subject: Following up: ${req.body.role || "Role"} Application - ${candidateName}\n\nHi ${req.body.company || "Company"} Recruiting Team,\n\nI hope you are having a great week.\n\nI am writing to respectfully check in regarding my ${req.body.role || "Software Engineer"} application. I remain very enthusiastic about the opportunity to contribute to ${req.body.company || "your team"}.\n\nPlease let me know if there is any other information I can provide. Thank you so much for your time.\n\nWarm regards,\n${candidateName}\n\n[Generated via DeadlineDesk Ghost Buster]`;
     res.json({ result: smartFollowUp, isFallback: true });
+  }
+});
+
+// ----------------- NETWORKING & CONTACTS CRM ROUTES -----------------
+
+// GET /api/contacts (List with optional filters)
+app.get("/api/contacts", async (req, res) => {
+  try {
+    const payload = verifyToken(req);
+    const { status, referralStatus, search } = req.query;
+
+    let filter = { userId: payload.id };
+    if (status && status !== "All") filter.status = status;
+    if (referralStatus && referralStatus !== "All") filter.referralStatus = referralStatus;
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { company: { $regex: search, $options: "i" } },
+        { role: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const contacts = await Contact.find(filter)
+      .populate("internshipId", "company role status deadline")
+      .sort({ updatedAt: -1 });
+
+    res.json(contacts);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    res.status(500).json({ message: "Failed to fetch contacts" });
+  }
+});
+
+// POST /api/contacts (Create new contact)
+app.post("/api/contacts", async (req, res) => {
+  try {
+    const payload = verifyToken(req);
+    const {
+      name,
+      company,
+      role,
+      email,
+      linkedinUrl,
+      outreachType,
+      status,
+      referralStatus,
+      nextFollowUpDate,
+      notes,
+      internshipId,
+    } = req.body;
+
+    if (!name || !company) {
+      return res.status(400).json({ message: "Name and Company are required." });
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const currentStatus = status || "Identified";
+    const initialHistory = [];
+
+    if (currentStatus === "Contacted" || currentStatus === "Follow-up Sent") {
+      initialHistory.push({
+        date: today,
+        note: `Initial outreach sent via ${outreachType || "Recruiter Pitch"}`,
+        type: "Outreach"
+      });
+    }
+
+    const contact = new Contact({
+      userId: payload.id,
+      internshipId: internshipId || null,
+      name: name.trim(),
+      company: company.trim(),
+      role: role ? role.trim() : "Recruiter",
+      email: email ? email.trim() : "",
+      linkedinUrl: linkedinUrl ? linkedinUrl.trim() : "",
+      outreachType: outreachType || "Recruiter Pitch",
+      status: currentStatus,
+      referralStatus: referralStatus || "None",
+      lastContactDate: currentStatus !== "Identified" ? today : "",
+      nextFollowUpDate: nextFollowUpDate || "",
+      notes: notes || "",
+      history: initialHistory,
+    });
+
+    await contact.save();
+    res.status(201).json(contact);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    res.status(500).json({ message: "Failed to create contact" });
+  }
+});
+
+// PUT /api/contacts/:id (Update contact)
+app.put("/api/contacts/:id", async (req, res) => {
+  try {
+    const payload = verifyToken(req);
+    const contact = await Contact.findOne({ _id: req.params.id, userId: payload.id });
+    if (!contact) return res.status(404).json({ message: "Contact not found" });
+
+    const today = new Date().toISOString().slice(0, 10);
+    const prevStatus = contact.status;
+    const prevReferral = contact.referralStatus;
+
+    Object.assign(contact, req.body);
+
+    // Track status change history automatically
+    if (req.body.status && req.body.status !== prevStatus) {
+      contact.lastContactDate = today;
+      contact.history.push({
+        date: today,
+        note: `Status updated from "${prevStatus}" to "${req.body.status}"`,
+        type: req.body.status === "Replied" ? "Reply" : "Follow-up"
+      });
+    }
+
+    if (req.body.referralStatus && req.body.referralStatus !== prevReferral) {
+      contact.history.push({
+        date: today,
+        note: `Referral status updated to "${req.body.referralStatus}"`,
+        type: "Referral"
+      });
+    }
+
+    await contact.save();
+    res.json(contact);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    res.status(500).json({ message: "Failed to update contact" });
+  }
+});
+
+// DELETE /api/contacts/:id
+app.delete("/api/contacts/:id", async (req, res) => {
+  try {
+    const payload = verifyToken(req);
+    const result = await Contact.findOneAndDelete({ _id: req.params.id, userId: payload.id });
+    if (!result) return res.status(404).json({ message: "Contact not found" });
+    res.json({ message: "Contact deleted successfully" });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    res.status(500).json({ message: "Failed to delete contact" });
+  }
+});
+
+// POST /api/me/ai-actions/contact-outreach (Personalized AI Outreach Engine)
+app.post("/api/me/ai-actions/contact-outreach", async (req, res) => {
+  try {
+    const payload = verifyToken(req);
+    const user = await User.findById(payload.id);
+    const { contactName, company, role, outreachType, targetRole, customNote } = req.body;
+    const candidateName = user?.name || "Candidate";
+
+    if (!process.env.GEMINI_API_KEY) {
+      let smartDraft = "";
+      if (outreachType === "Referral Request") {
+        smartDraft = `Subject: Question regarding ${targetRole || "Software Engineering"} roles at ${company} — ${candidateName}\n\nHi ${contactName},\n\nI hope you are having a wonderful week!\n\nI noticed your great work as ${role || "Engineer"} at ${company}. I am currently preparing to apply for the ${targetRole || "Software Engineer"} position at ${company}. Having built full-stack projects in React and Node.js, I would be deeply grateful for your perspective on the team culture.\n\nIf you feel my background could be a strong fit, I would be honored to be considered for an internal referral. Regardless, thank you so much for your time and any quick advice!\n\nWarm regards,\n${candidateName}\n\n[Generated via DeadlineDesk Outreach Engine]`;
+      } else if (outreachType === "Coffee Chat") {
+        smartDraft = `Subject: Quick 10-min chat on your journey at ${company}? — ${candidateName}\n\nHi ${contactName},\n\nI came across your profile and was really inspired by your journey at ${company} as ${role || "Engineer"}.\n\nAs an aspiring software engineer preparing for tech internships, I'd love to learn about the engineering challenges your team tackles. Would you be open to a brief 10-15 minute virtual coffee chat sometime in the next couple of weeks?\n\nThank you so much for your time and guidance!\n\nBest regards,\n${candidateName}\n\n[Generated via DeadlineDesk Outreach Engine]`;
+      } else {
+        smartDraft = `Subject: Application & Inquiry: ${targetRole || "Software Engineer Intern"} at ${company} — ${candidateName}\n\nHi ${contactName},\n\nI recently applied for the ${targetRole || "Software Engineer"} opening at ${company} and wanted to reach out directly. With hands-on experience building scalable applications, I've developed full-stack systems with modern architectures.\n\nI admire ${company}'s products and would love to contribute to your engineering goals. Please let me know if you would be open to a brief conversation about how my skills align with the team.\n\nWarm regards,\n${candidateName}\n\n[Generated via DeadlineDesk Outreach Engine]`;
+      }
+      return res.json({ result: smartDraft, isFallback: true });
+    }
+
+    const prompt = `You are a world-class career strategist and networking coach. 
+Write a highly compelling, personalized LinkedIn message or cold email from candidate "${candidateName}" to "${contactName}" who works as "${role}" at "${company}".
+
+Goal of Outreach: "${outreachType || 'Recruiter Pitch'}"
+Target Role Candidate is Pursuing: "${targetRole || 'Software Engineering Intern'}"
+Additional Note / Context: "${customNote || 'N/A'}"
+Candidate Resume Context: "${(user.resumeText || "").substring(0, 2500)}"
+
+Instructions:
+- Keep it concise (under 140 words).
+- Make it warm, authentic, professional, and respectful of their time.
+- Directly highlight 1 relevant achievement or project from the candidate's resume that proves technical credibility.
+- Include a clear Subject line at the beginning.`;
+
+    const response = await getAIClient().models.generateContent({
+      model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+      contents: prompt,
+    });
+
+    res.json({ result: response.text });
+  } catch (err) {
+    console.error("AI Contact Outreach error, falling back to smart template:", err.message);
+    const candidateName = req.body.candidateName || "Candidate";
+    const smartDraft = `Subject: Reaching out regarding ${req.body.targetRole || "Software Engineering"} at ${req.body.company} — ${candidateName}\n\nHi ${req.body.contactName},\n\nI hope you're having a great week! I am reaching out regarding the ${req.body.targetRole || "Software Engineer"} role at ${req.body.company}. With a strong background in software engineering, I would love to connect and learn more about your team's current focus.\n\nThank you for your time and consideration!\n\nBest regards,\n${candidateName}`;
+    res.json({ result: smartDraft, isFallback: true });
+  }
+});
+
+// ----------------- APPLICATION CONVERSION FUNNEL & ANALYTICS -----------------
+
+// GET /api/me/analytics
+app.get("/api/me/analytics", async (req, res) => {
+  try {
+    const payload = verifyToken(req);
+    const internships = await Internship.find({ userId: payload.id });
+    const contacts = await Contact.find({ userId: payload.id });
+
+    const totalApplied = internships.length;
+    const stageCounts = {
+      Applied: 0,
+      OA: 0,
+      Interview: 0,
+      Offer: 0,
+      Rejected: 0,
+      "No Response": 0,
+    };
+
+    internships.forEach(item => {
+      const s = item.status || "Applied";
+      if (stageCounts[s] !== undefined) stageCounts[s]++;
+      else stageCounts.Applied++;
+    });
+
+    // Funnel milestones (A candidate who reached Interview also reached or bypassed OA)
+    const oaReached = stageCounts.OA + stageCounts.Interview + stageCounts.Offer;
+    const interviewReached = stageCounts.Interview + stageCounts.Offer;
+    const offers = stageCounts.Offer;
+
+    const funnel = {
+      total: totalApplied,
+      applied: totalApplied,
+      oa: oaReached,
+      interview: interviewReached,
+      offer: offers,
+      rejected: stageCounts.Rejected,
+      noResponse: stageCounts["No Response"],
+      rates: {
+        appliedToOA: totalApplied > 0 ? Math.round((oaReached / totalApplied) * 100) : 0,
+        oaToInterview: oaReached > 0 ? Math.round((interviewReached / oaReached) * 100) : (totalApplied > 0 ? Math.round((interviewReached / totalApplied) * 100) : 0),
+        interviewToOffer: interviewReached > 0 ? Math.round((offers / interviewReached) * 100) : 0,
+        overallConversion: totalApplied > 0 ? Math.round((offers / totalApplied) * 100) : 0,
+      }
+    };
+
+    // Networking metrics
+    const totalContacts = contacts.length;
+    const contactedCount = contacts.filter(c => c.status !== "Identified").length;
+    const repliedCount = contacts.filter(c => c.status === "Replied" || c.status === "Referral Secured").length;
+    const referralsRequested = contacts.filter(c => c.referralStatus === "Requested" || c.referralStatus === "Confirmed").length;
+    const referralsConfirmed = contacts.filter(c => c.referralStatus === "Confirmed").length;
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const pendingFollowUps = contacts.filter(c => {
+      if (c.status === "Replied" || c.status === "Referral Secured") return false;
+      if (c.nextFollowUpDate && c.nextFollowUpDate <= todayStr) return true;
+      if (c.status === "Contacted" && c.lastContactDate) {
+        const diffDays = Math.round((new Date(todayStr) - new Date(c.lastContactDate)) / (1000 * 60 * 60 * 24));
+        return diffDays >= 5;
+      }
+      return false;
+    });
+
+    const networking = {
+      totalContacts,
+      contactedCount,
+      repliedCount,
+      replyRate: contactedCount > 0 ? Math.round((repliedCount / contactedCount) * 100) : 0,
+      referralsRequested,
+      referralsConfirmed,
+      referralWinRate: referralsRequested > 0 ? Math.round((referralsConfirmed / referralsRequested) * 100) : 0,
+      pendingFollowUpCount: pendingFollowUps.length,
+    };
+
+    // Weekly Velocity (last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const sevenDaysStr = sevenDaysAgo.toISOString().slice(0, 10);
+
+    const recentApps = internships.filter(i => i.appliedDate && i.appliedDate >= sevenDaysStr).length;
+    const recentOutreach = contacts.filter(c => c.lastContactDate && c.lastContactDate >= sevenDaysStr).length;
+
+    res.json({
+      funnel,
+      stageCounts,
+      networking,
+      weeklyVelocity: {
+        recentApps,
+        recentOutreach,
+        weeklyGoal: 10,
+        goalProgress: Math.min(100, Math.round((recentApps / 10) * 100)),
+      }
+    });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    res.status(500).json({ message: "Failed to compute analytics" });
   }
 });
 

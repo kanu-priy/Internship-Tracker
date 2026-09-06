@@ -9,6 +9,8 @@ import EditInternship from "./pages/EditInternship";
 import Account from "./pages/Account";
 import ResumeSetup from "./pages/ResumeSetup";
 import Integrations from "./pages/Integrations";
+import Networking from "./pages/Networking";
+import Analytics from "./pages/Analytics";
 
 function App() {
   return (
@@ -18,6 +20,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register/>} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/networking" element={<Networking />} />
+        <Route path="/analytics" element={<Analytics />} />
         <Route path="/add" element={<AddInternship />} />
         
          {/* EDIT INTERNSHIP — IMPORTANT */}
