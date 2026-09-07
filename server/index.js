@@ -1131,12 +1131,12 @@ Return ONLY a valid JSON object with no markdown formatting:
     if (!parsed) {
       let detectedStatus = "Applied";
       let statusConf = 0.70;
-      if (/offer|congratulations|pleased to offer|compensation package/i.test(emailText)) {
-        detectedStatus = "Offer"; statusConf = 0.95;
+      if (/online assessment|coding challenge|hackerrank|codesignal|\boa\b|assessment link|take the assessment/i.test(emailText)) {
+        detectedStatus = "OA"; statusConf = 0.92;
       } else if (/interview|phone screen|technical round|chat with the team|availability for a call/i.test(emailText)) {
         detectedStatus = "Interview"; statusConf = 0.90;
-      } else if (/online assessment|coding challenge|hackerrank|codesignal|oa\b|assessment link/i.test(emailText)) {
-        detectedStatus = "OA"; statusConf = 0.92;
+      } else if (/pleased to offer|offer of employment|job offer|formal offer|compensation package/i.test(emailText) || (/offer/i.test(emailText) && /congratulations/i.test(emailText))) {
+        detectedStatus = "Offer"; statusConf = 0.95;
       } else if (/unfortunately|not moving forward|pursue other candidates|regret to inform|high volume of applicants/i.test(emailText)) {
         detectedStatus = "Rejected"; statusConf = 0.95;
       }
