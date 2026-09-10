@@ -140,6 +140,8 @@ export default function AddInternship() {
   const navigate = useNavigate();
   const [company, setCompany] = useState("");
   const [role, setRole] = useState("");
+  const [location, setLocation] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
   const [appliedDate, setAppliedDate] = useState("");
   const [deadline, setDeadline] = useState("");
   const [notes, setNotes] = useState("");
@@ -160,7 +162,7 @@ export default function AddInternship() {
       const res = await fetch("http://localhost:5000/api/internships", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ company, role, status, appliedDate, deadline, notes, resumeUsed }),
+        body: JSON.stringify({ company, role, status, appliedDate, deadline, notes, resumeUsed, location, jobDescription }),
       });
       if (!res.ok) throw new Error("Save failed");
       navigate("/dashboard");
@@ -195,14 +197,19 @@ export default function AddInternship() {
               {/* LEFT COLUMN */}
               <div className="form-col">
                 <div className="input-group">
-                  <label className="add-label">Company</label>
-                  <input type="text" placeholder="Google, Meta, etc." value={company}
-                    onChange={(e) => { setCompany(e.target.value); setError(""); }} className="add-input" />
+                  <label className="add-label">Company *</label>
+                  <input type="text" placeholder="Google, Meta, Stripe..." value={company}
+                    onChange={(e) => { setCompany(e.target.value); setError(""); }} className="add-input" required />
                 </div>
                 <div className="input-group">
-                  <label className="add-label">Role / Position</label>
-                  <input type="text" placeholder="SWE Intern" value={role}
-                    onChange={(e) => { setRole(e.target.value); setError(""); }} className="add-input" />
+                  <label className="add-label">Role / Position *</label>
+                  <input type="text" placeholder="Software Engineering Intern" value={role}
+                    onChange={(e) => { setRole(e.target.value); setError(""); }} className="add-input" required />
+                </div>
+                <div className="input-group">
+                  <label className="add-label">Location (Optional)</label>
+                  <input type="text" placeholder="e.g. Remote / New York, NY" value={location}
+                    onChange={(e) => setLocation(e.target.value)} className="add-input" />
                 </div>
                 <div className="input-group">
                   <label className="add-label">Status</label>
@@ -216,18 +223,26 @@ export default function AddInternship() {
                     ))}
                   </div>
                 </div>
+                <div className="input-group">
+                  <label className="add-label">Job Description / Requirements (for ATS matching)</label>
+                  <textarea
+                    placeholder="Paste job description or requirements here for automated AI match scoring..."
+                    value={jobDescription}
+                    onChange={(e) => setJobDescription(e.target.value)}
+                    className="add-textarea"
+                    style={{ minHeight: "120px" }}
+                  />
+                </div>
               </div>
 
               {/* RIGHT COLUMN */}
               <div className="form-col">
                 <div className="input-group">
-                  <label className="add-label">Applied Date</label>
+                  <label className="add-label">Applied Date *</label>
                   <input
-                    type={appliedDate ? "date" : "text"}
-                    placeholder="Applied Date"
+                    type="date"
+                    required
                     value={appliedDate}
-                    onFocus={(e) => (e.target.type = "date")}
-                    onBlur={(e) => { if (!appliedDate) e.target.type = "text"; }}
                     onChange={(e) => { setAppliedDate(e.target.value); setError(""); }}
                     className="add-input"
                   />
@@ -235,11 +250,9 @@ export default function AddInternship() {
                 <div className="input-group">
                   <label className="add-label">Deadline / OA / Interview</label>
                   <input
-                    type={deadline ? "date" : "text"}
+                    type="date"
                     placeholder="Optional"
                     value={deadline}
-                    onFocus={(e) => (e.target.type = "date")}
-                    onBlur={(e) => { if (!deadline) e.target.type = "text"; }}
                     onChange={(e) => setDeadline(e.target.value)}
                     className="add-input"
                   />
@@ -248,25 +261,26 @@ export default function AddInternship() {
                   <label className="add-label">Resume Used (Optional)</label>
                   <input
                     type="text"
-                    placeholder="e.g. Frontend_v2.pdf"
+                    placeholder="e.g. SWE_Resume_2026.pdf"
                     value={resumeUsed}
                     onChange={(e) => setResumeUsed(e.target.value)}
                     className="add-input"
                   />
                 </div>
                 <div className="input-group">
-                  <label className="add-label">Notes</label>
+                  <label className="add-label">Notes & Next Steps</label>
                   <textarea
-                    placeholder="Any additional notes..."
+                    placeholder="e.g. Recruiter contacted on LinkedIn; OA link received..."
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     className="add-textarea"
+                    style={{ minHeight: "120px" }}
                   />
                 </div>
               </div>
             </div>
 
-            <button type="submit" className="add-btn">Add Internship</button>
+            <button type="submit" className="add-btn">Add Application</button>
           </form>
         </div>
       </div>

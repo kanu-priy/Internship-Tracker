@@ -258,6 +258,24 @@ export default function MyAccount() {
     }
   };
 
+  const handleSeedSampleData = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:5000/api/me/seed-sample-data", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setToast({ message: "Sample applications, resume, & contacts loaded!", type: "success" });
+      } else {
+        setToast({ message: data.message || "Failed to load sample data", type: "error" });
+      }
+    } catch (err) {
+      setToast({ message: "Network error loading sample data", type: "error" });
+    }
+  };
+
   function handleLogout() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -328,9 +346,15 @@ export default function MyAccount() {
               </div>
             </div>
 
-            <button className="btn-test" onClick={handleSendTestEmail} disabled={sendingTest}>
-              {sendingTest ? "Sending..." : "⚡ Send Test Notification Email"}
-            </button>
+            <div className="section-title">Developer & Demo Tools</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "24px" }}>
+              <button className="btn-test" onClick={handleSeedSampleData} style={{ marginBottom: 0 }}>
+                ⚡ Load Sample Applications & Contacts
+              </button>
+              <button className="btn-test" onClick={handleSendTestEmail} disabled={sendingTest} style={{ marginBottom: 0 }}>
+                {sendingTest ? "Sending..." : "✉️ Send Test Notification Email"}
+              </button>
+            </div>
 
             <button className="btn-logout" onClick={handleLogout}>
               Logout

@@ -406,6 +406,25 @@ export default function Networking() {
     }
   };
 
+  const handleSeedSampleData = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:5000/api/me/seed-sample-data", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setToast({ message: "Loaded authentic sample networking contacts!", type: "success" });
+        fetchData();
+      } else {
+        setToast({ message: data.message || "Failed to load sample data", type: "error" });
+      }
+    } catch (err) {
+      setToast({ message: "Network error loading sample data", type: "error" });
+    }
+  };
+
   // Generate AI Outreach Draft
   const handleGenerateOutreach = async (contact, type = outreachType) => {
     setOutreachTarget(contact);
@@ -566,12 +585,37 @@ export default function Networking() {
           {loading ? (
             <div style={{ padding: "60px", textAlign: "center", color: "#8a857e" }}>Loading networking contacts...</div>
           ) : filtered.length === 0 ? (
-            <div style={{ padding: "60px", textAlign: "center", background: "#ffffff", border: "1px solid #e4e0d9", borderRadius: "14px" }}>
-              <div style={{ fontSize: "28px", marginBottom: "8px" }}>👥</div>
-              <div style={{ fontWeight: 800, fontSize: "16px", color: "#2a2a2a" }}>No contacts found</div>
-              <div style={{ fontSize: "12px", color: "#8a857e", marginTop: "4px" }}>
-                Add recruiters, alumni, or engineers to start tracking personal outreach and referrals.
+            <div style={{ padding: "60px 20px", textAlign: "center", background: "#ffffff", border: "1px solid #e4e0d9", borderRadius: "14px" }}>
+              <div style={{ fontSize: "32px", marginBottom: "8px" }}>👥</div>
+              <div style={{ fontWeight: 800, fontSize: "16px", color: "#2a2a2a" }}>
+                {contacts.length === 0 ? "No contacts in your CRM yet" : "No contacts match your filter"}
               </div>
+              <div style={{ fontSize: "13px", color: "#8a857e", maxWidth: "440px", margin: "6px auto 20px auto", lineHeight: 1.5 }}>
+                {contacts.length === 0
+                  ? "Track recruiters, engineers, and alumni to generate hyper-personalized AI outreach and follow up on referrals."
+                  : "Try changing your search term or filtering criteria."}
+              </div>
+              {contacts.length === 0 && (
+                <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+                  <button
+                    className="btn-wine"
+                    onClick={() => {
+                      setEditingContact(null);
+                      setFormData({
+                        name: "", company: "", role: "Technical Recruiter", email: "",
+                        linkedinUrl: "", outreachType: "Referral Request", status: "Identified",
+                        referralStatus: "None", nextFollowUpDate: "", notes: "", internshipId: "",
+                      });
+                      setShowAddModal(true);
+                    }}
+                  >
+                    + Add First Contact
+                  </button>
+                  <button className="btn-secondary" onClick={handleSeedSampleData} style={{ fontWeight: 700 }}>
+                    ⚡ Load Sample Demo Data
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="contacts-grid">

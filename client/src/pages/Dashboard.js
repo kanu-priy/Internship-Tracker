@@ -562,6 +562,28 @@ const handleSaveNotes = async (id, notes) => {
   };
 
   // --------------------------------------------------
+  // V3.0: Seed Demo Data
+  // --------------------------------------------------
+  const handleSeedSampleData = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:5000/api/me/seed-sample-data", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setToast({ message: "Loaded authentic sample applications & contacts!", type: "success" });
+        fetchInternships();
+      } else {
+        setToast({ message: data.message || "Failed to load sample data", type: "error" });
+      }
+    } catch (err) {
+      setToast({ message: "Network error loading sample data", type: "error" });
+    }
+  };
+
+  // --------------------------------------------------
   // V2.0: Career Score
   // --------------------------------------------------
   const careerScore = Math.min(100, Math.max(0,
@@ -944,10 +966,24 @@ const handleSaveNotes = async (id, notes) => {
               {loading ? (
                 <div style={{ padding: '60px', textAlign: 'center', color: '#8a857e' }}>Loading your applications...</div>
               ) : filteredInternships.length === 0 ? (
-                <div style={{ padding: '60px', textAlign: 'center', color: '#8a857e' }}>
-                  <div style={{ marginBottom: '12px', fontSize: '28px' }}>📂</div>
-                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#2a2a2a', marginBottom: '4px' }}>No applications match your filter</div>
-                  <div style={{ fontSize: '12px' }}>Try searching another keyword or logging a new application.</div>
+                <div style={{ padding: '60px 20px', textAlign: 'center', color: '#8a857e', background: '#ffffff', borderRadius: '16px' }}>
+                  <div style={{ marginBottom: '12px', fontSize: '32px' }}>📂</div>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#2a2a2a', marginBottom: '6px' }}>
+                    {internships.length === 0 ? "No applications tracked yet" : "No applications match your filter"}
+                  </div>
+                  <div style={{ fontSize: '13px', maxWidth: '420px', margin: '0 auto 20px auto', lineHeight: 1.5 }}>
+                    {internships.length === 0 
+                      ? "Start logging your internship applications to unlock the Kanban board, ATS matching, and AI interview prep."
+                      : "Try clearing your search query or changing the status filter above."}
+                  </div>
+                  {internships.length === 0 && (
+                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                      <a href="/add" className="add-btn" style={{ display: 'inline-flex' }}>+ Add First Application</a>
+                      <button className="scan-btn" onClick={handleSeedSampleData} style={{ fontWeight: 700 }}>
+                        ⚡ Load Sample Demo Data
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : viewMode === 'board' ? (
                 <KanbanBoard 

@@ -156,6 +156,8 @@ export default function EditInternship() {
   const { id } = useParams();
   const [company, setCompany] = useState("");
   const [role, setRole] = useState("");
+  const [location, setLocation] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
   const [appliedDate, setAppliedDate] = useState("");
   const [deadline, setDeadline] = useState("");
   const [notes, setNotes] = useState("");
@@ -172,8 +174,10 @@ export default function EditInternship() {
         });
         if (!res.ok) throw new Error("Failed to load");
         const data = await res.json();
-        setCompany(data.company);
-        setRole(data.role);
+        setCompany(data.company || "");
+        setRole(data.role || "");
+        setLocation(data.location || "");
+        setJobDescription(data.jobDescription || "");
         setAppliedDate(data.appliedDate || "");
         setDeadline(data.deadline || "");
         setNotes(data.notes || "");
@@ -195,7 +199,7 @@ export default function EditInternship() {
       const res = await fetch(`http://localhost:5000/api/internships/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ company, role, appliedDate, deadline, notes, resumeUsed, status }),
+        body: JSON.stringify({ company, role, appliedDate, deadline, notes, resumeUsed, status, location, jobDescription }),
       });
       if (!res.ok) throw new Error("Update failed");
       navigate("/dashboard");
@@ -227,14 +231,19 @@ export default function EditInternship() {
               {/* LEFT COLUMN */}
               <div className="form-col">
                 <div className="input-group">
-                  <label className="edit-label">Company</label>
+                  <label className="edit-label">Company *</label>
                   <input type="text" placeholder="Company" value={company}
-                    onChange={(e) => setCompany(e.target.value)} className="edit-input" />
+                    onChange={(e) => setCompany(e.target.value)} className="edit-input" required />
                 </div>
                 <div className="input-group">
-                  <label className="edit-label">Role / Position</label>
+                  <label className="edit-label">Role / Position *</label>
                   <input type="text" placeholder="Role" value={role}
-                    onChange={(e) => setRole(e.target.value)} className="edit-input" />
+                    onChange={(e) => setRole(e.target.value)} className="edit-input" required />
+                </div>
+                <div className="input-group">
+                  <label className="edit-label">Location</label>
+                  <input type="text" placeholder="e.g. Remote / New York, NY" value={location}
+                    onChange={(e) => setLocation(e.target.value)} className="edit-input" />
                 </div>
                 <div className="input-group">
                   <label className="edit-label">Status</label>
@@ -248,17 +257,27 @@ export default function EditInternship() {
                     ))}
                   </div>
                 </div>
+                <div className="input-group">
+                  <label className="edit-label">Job Description / Requirements</label>
+                  <textarea
+                    placeholder="Job description or requirements for automated ATS keyword matching..."
+                    value={jobDescription}
+                    onChange={(e) => setJobDescription(e.target.value)}
+                    className="edit-textarea"
+                    style={{ minHeight: "110px" }}
+                  />
+                </div>
               </div>
 
               {/* RIGHT COLUMN */}
               <div className="form-col">
                 <div className="input-group">
-                  <label className="edit-label">Applied Date</label>
-                  <input type="date" value={appliedDate}
+                  <label className="edit-label">Applied Date *</label>
+                  <input type="date" value={appliedDate} required
                     onChange={(e) => setAppliedDate(e.target.value)} className="edit-input" />
                 </div>
                 <div className="input-group">
-                  <label className="edit-label">Deadline</label>
+                  <label className="edit-label">Deadline / OA / Interview</label>
                   <input type="date" value={deadline}
                     onChange={(e) => setDeadline(e.target.value)} className="edit-input" />
                 </div>
@@ -266,19 +285,20 @@ export default function EditInternship() {
                   <label className="edit-label">Resume Used (Optional)</label>
                   <input
                     type="text"
-                    placeholder="e.g. Frontend_v2.pdf"
+                    placeholder="e.g. SWE_Resume_2026.pdf"
                     value={resumeUsed}
                     onChange={(e) => setResumeUsed(e.target.value)}
                     className="edit-input"
                   />
                 </div>
                 <div className="input-group">
-                  <label className="edit-label">Notes</label>
+                  <label className="edit-label">Notes & Status Updates</label>
                   <textarea
                     placeholder="Any additional notes..."
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     className="edit-textarea"
+                    style={{ minHeight: "110px" }}
                   />
                 </div>
               </div>
