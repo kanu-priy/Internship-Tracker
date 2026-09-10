@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import API_BASE from "../apiConfig";
 
 const styles = `
   .add-root {
@@ -159,7 +160,7 @@ export default function AddInternship() {
     if (!company || !role || !appliedDate) { setError("Company, role, and applied date are required"); return; }
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5000/api/internships", {
+      const res = await fetch(`${API_BASE}/api/internships`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ company, role, status, appliedDate, deadline, notes, resumeUsed, location, jobDescription }),

@@ -1,4 +1,5 @@
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -17,10 +18,22 @@ function getAIClient() {
 const User = require("./models/User");
 const Internship = require("./models/Internship");
 const Contact = require("./models/Contact");
+const Experience = require("./models/Experience");
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: "2mb" })); // raised limit for resume text + JD text
+
+// Health check endpoint for deployment monitoring
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+    uptimeSeconds: Math.round(process.uptime()),
+    database: mongoose.connection.readyState === 1 ? "connected" : "connecting/disconnected",
+    version: "2.0.0",
+  });
+});
 
 const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/internship_tracker";
 mongoose
@@ -528,7 +541,11 @@ app.post("/api/internships/:id/match", async (req, res) => {
     );
 
     // Persist score on internship so it doesn't need to be recomputed
-    await Internship.findByIdAndUpdate(req.params.id, { matchScore: score });
+    await Internship.findByIdAndUpdate(req.params.id, {
+      matchScore: score,
+      matchedSkills: matched || [],
+      missingSkills: missing || [],
+    });
 
     res.json({ score, matched, missing });
   } catch (err) {
@@ -552,13 +569,17 @@ app.post("/api/me/match-all", async (req, res) => {
     const results = [];
 
     for (const internship of internships) {
-      const { score } = await computeMatchAsync(
+      const { score, matched, missing } = await computeMatchAsync(
         user.resumeText,
         internship.jobDescription,
         internship.role,
         internship.company
       );
-      await Internship.findByIdAndUpdate(internship._id, { matchScore: score });
+      await Internship.findByIdAndUpdate(internship._id, {
+        matchScore: score,
+        matchedSkills: matched || [],
+        missingSkills: missing || [],
+      });
       results.push({ id: internship._id, score });
     }
 
@@ -637,7 +658,7 @@ Job Description: "${(jobDescription || "").substring(0, 3000)}"`;
 });
 
 // ----------------- AI ACTIONS (Ghost Buster Follow-Up Generator) -----------------
-app.post("/api/me/ai-actions/follow-up", async (req, res) => {
+app.post(["/api/me/ai-actions/follow-up", "/api/me/ai-actions/followup"], async (req, res) => {
   try {
     const payload = verifyToken(req);
     const user = await User.findById(payload.id);
@@ -673,6 +694,86 @@ Instructions:
     const candidateName = user?.name || "Candidate";
     const smartFollowUp = `Subject: Following up: ${req.body.role || "Role"} Application - ${candidateName}\n\nHi ${req.body.company || "Company"} Recruiting Team,\n\nI hope you are having a great week.\n\nI am writing to respectfully check in regarding my ${req.body.role || "Software Engineer"} application. I remain very enthusiastic about the opportunity to contribute to ${req.body.company || "your team"}.\n\nPlease let me know if there is any other information I can provide. Thank you so much for your time.\n\nWarm regards,\n${candidateName}\n\n[Generated via DeadlineDesk Ghost Buster]`;
     res.json({ result: smartFollowUp, isFallback: true });
+  }
+});
+
+// ----------------- AI ACTIONS (1-Click Resume Bullet Improver) -----------------
+app.post("/api/me/ai-actions/improve-bullet", async (req, res) => {
+  try {
+    const payload = verifyToken(req);
+    const { bullet, role, company, targetKeywords } = req.body;
+
+    if (!bullet || !bullet.trim()) {
+      return res.status(400).json({ message: "Bullet point text is required" });
+    }
+
+    if (process.env.GEMINI_API_KEY) {
+      try {
+        const prompt = `You are a Principal Tech Recruiter and resume optimization coach.
+Improve the following resume bullet point for a candidate targeting the role of "${role || 'Software Engineer'}" at "${company || 'top tech companies'}".
+
+Original Bullet Point:
+"${bullet.trim()}"
+
+Target Keywords/Skills to organically integrate if relevant:
+"${targetKeywords && targetKeywords.length ? targetKeywords.join(', ') : 'APIs, scalability, performance, data structures, cloud'}"
+
+Instructions:
+1. Start with a powerful action verb (e.g., Engineered, Architected, Spearheaded, Implemented, Streamlined).
+2. Incorporate quantifiable impact or realistic metrics (e.g. latency, throughput, scale, efficiency, test coverage).
+3. Weave in the technical stack cleanly without keyword stuffing.
+4. Keep to 1-2 concise, punchy lines.
+
+Return ONLY a valid JSON object:
+{
+  "improved": "<the enhanced resume bullet point>",
+  "actionVerb": "<primary action verb>",
+  "metricsAdded": "<summary of metric or impact highlighted>",
+  "feedback": "<1 sentence on why this bullet passes ATS and impresses hiring managers>"
+}`;
+
+        const response = await getAIClient().models.generateContent({
+          model: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
+          contents: prompt,
+        });
+
+        const text = response.text || "{}";
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          return res.json({
+            original: bullet.trim(),
+            improved: parsed.improved,
+            improvedBullet: parsed.improved,
+            actionVerb: parsed.actionVerb || "Architected",
+            metricsAdded: parsed.metricsAdded || "Performance & Scalability",
+            changesMade: parsed.metricsAdded || "Strengthened action verb and quantified impact.",
+            feedback: parsed.feedback || "Strengthens action verbs and quantifies technical scope.",
+          });
+        }
+      } catch (geminiErr) {
+        console.error("Gemini bullet improve failed, falling back to smart rewriter:", geminiErr.message);
+      }
+    }
+
+    // Fallback smart bullet enhancement
+    const cleanBullet = bullet.trim().replace(/^[•\-\*\s]+/, "");
+    const kwSample = targetKeywords && targetKeywords.length > 0 ? targetKeywords.slice(0, 2).join(" and ") : "REST microservices";
+    const improvedText = `Spearheaded development of ${cleanBullet.charAt(0).toLowerCase() + cleanBullet.slice(1)}, integrating ${kwSample} to elevate system reliability and achieve a 30% latency reduction.`;
+
+    res.json({
+      original: bullet.trim(),
+      improved: improvedText,
+      improvedBullet: improvedText,
+      actionVerb: "Spearheaded",
+      metricsAdded: "30% latency reduction & reliability",
+      changesMade: "Replaced passive phrasing with an impactful engineering verb and quantifiable outcome.",
+      feedback: "Replaced passive phrasing with an impactful engineering verb and quantifiable outcome.",
+      isFallback: true,
+    });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    res.status(500).json({ message: "Failed to improve bullet" });
   }
 });
 
@@ -965,6 +1066,461 @@ app.get("/api/me/analytics", async (req, res) => {
   }
 });
 
+// ----------------- TODAY COMMAND CENTER / DAILY FOCUS -----------------
+// GET /api/me/daily-focus
+app.get("/api/me/daily-focus", async (req, res) => {
+  try {
+    const payload = verifyToken(req);
+    const userId = payload.id;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().slice(0, 10);
+
+    const [user, internships, contacts] = await Promise.all([
+      User.findById(userId),
+      Internship.find({ userId }),
+      Contact.find({ userId }),
+    ]);
+
+    // Summary counts
+    const totalApps = internships.length;
+    const activeInterviews = internships.filter(i => i.status === "Interview").length;
+    const activeOffers = internships.filter(i => i.status === "Offer").length;
+    const activeOAs = internships.filter(i => i.status === "OA").length;
+
+    // Calculate career score
+    const stageCounts = { Applied: 0, OA: 0, Interview: 0, Offer: 0, Rejected: 0 };
+    internships.forEach(i => {
+      if (stageCounts[i.status] !== undefined) stageCounts[i.status]++;
+    });
+    const careerScore = Math.min(100, Math.max(0,
+      stageCounts.Applied * 2 +
+      stageCounts.OA * 10 +
+      stageCounts.Interview * 20 +
+      stageCounts.Offer * 40 -
+      stageCounts.Rejected * 3
+    ));
+
+    // Stale apps & urgent deadlines
+    const staleApps = internships.map(app => {
+      let lastDate = app.updatedAt || app.createdAt || app.appliedDate;
+      if (app.timeline && app.timeline.length > 0) {
+        const lastEntry = app.timeline[app.timeline.length - 1].date;
+        if (lastEntry) lastDate = lastEntry;
+      }
+      const daysStale = Math.round((today - new Date(lastDate)) / 86400000);
+      return { ...app.toObject(), daysStale };
+    }).filter(app => app.daysStale >= 7 && app.status !== "Rejected" && app.status !== "Offer")
+      .sort((a, b) => b.daysStale - a.daysStale);
+
+    // Urgent OAs and Interviews
+    const upcomingDeadlines = internships.filter(i => i.deadline).map(i => {
+      const daysLeft = Math.round((new Date(i.deadline) - today) / 86400000);
+      return { ...i.toObject(), daysLeft };
+    }).filter(i => i.daysLeft >= 0).sort((a, b) => a.daysLeft - b.daysLeft);
+
+    // Overdue or pending networking follow-ups
+    const pendingContacts = contacts.filter(c => {
+      if (c.status === "Replied" || c.status === "Referral Secured") return false;
+      if (c.nextFollowUpDate && c.nextFollowUpDate <= todayStr) return true;
+      if (c.status === "Contacted" && c.lastContactDate) {
+        const diffDays = Math.round((today - new Date(c.lastContactDate)) / 86400000);
+        return diffDays >= 5;
+      }
+      return false;
+    });
+
+    // ── DETERMINE NEXT BEST ACTION (Rule-based Intelligence) ──────────────
+    let nextBestAction = null;
+
+    // 1. OA deadline within 3 days
+    const urgentOA = upcomingDeadlines.find(i => i.status === "OA" && i.daysLeft <= 3);
+    if (urgentOA) {
+      nextBestAction = {
+        type: "oa_prep",
+        company: urgentOA.company,
+        role: urgentOA.role,
+        priority: "High",
+        badge: "🔥 Top Priority",
+        title: `${urgentOA.company} OA is ${urgentOA.daysLeft === 0 ? "today!" : urgentOA.daysLeft === 1 ? "tomorrow!" : `in ${urgentOA.daysLeft} days`}`,
+        subtitle: `Common tested patterns: Graphs, Dynamic Programming, and System Design. Focus on LeetCode Mediums.`,
+        ctaText: "Start 45-Min Prep",
+        ctaLink: `/community?company=${encodeURIComponent(urgentOA.company)}`,
+        targetId: urgentOA._id,
+      };
+    }
+
+    // 2. Interview within 5 days
+    if (!nextBestAction) {
+      const urgentInterview = upcomingDeadlines.find(i => i.status === "Interview" && i.daysLeft <= 5);
+      if (urgentInterview) {
+        nextBestAction = {
+          type: "interview_prep",
+          company: urgentInterview.company,
+          role: urgentInterview.role,
+          priority: "High",
+          badge: "🎯 Interview Prep",
+          title: `Technical Round with ${urgentInterview.company} in ${urgentInterview.daysLeft === 0 ? "today" : urgentInterview.daysLeft === 1 ? "tomorrow" : `${urgentInterview.daysLeft} days`}`,
+          subtitle: `Practice STAR answers for your core projects and review ${urgentInterview.company}'s engineering values.`,
+          ctaText: "Review Prep Questions",
+          ctaLink: `/dashboard`,
+          targetId: urgentInterview._id,
+        };
+      }
+    }
+
+    // 3. Referral follow-up due
+    if (!nextBestAction && pendingContacts.length > 0) {
+      const topContact = pendingContacts[0];
+      nextBestAction = {
+        type: "contact_followup",
+        company: topContact.company,
+        role: topContact.role,
+        contactName: topContact.name,
+        priority: "High",
+        badge: "🤝 Referral Follow-Up",
+        title: `Follow up with ${topContact.name} at ${topContact.company}`,
+        subtitle: `Sent outreach previously with no response yet. A polite 2-sentence nudge increases response rate by 3x.`,
+        ctaText: "Generate AI Follow-Up",
+        ctaLink: `/networking`,
+        targetId: topContact._id,
+      };
+    }
+
+    // 4. Stale Application (>10 days)
+    if (!nextBestAction && staleApps.length > 0) {
+      const topStale = staleApps[0];
+      nextBestAction = {
+        type: "ghost_buster",
+        company: topStale.company,
+        role: topStale.role,
+        priority: "Medium",
+        badge: "👻 Ghost Buster",
+        title: `No update from ${topStale.company} in ${topStale.daysStale} days`,
+        subtitle: `Stage: ${topStale.status}. Run the Ghost Buster generator to respectfully check in on your candidacy.`,
+        ctaText: "Send Ghost Buster Nudge",
+        ctaLink: `/dashboard`,
+        targetId: topStale._id,
+      };
+    }
+
+    // 5. Low match score that needs resume tuning
+    if (!nextBestAction) {
+      const lowMatch = internships.find(i => i.matchScore != null && i.matchScore < 65);
+      if (lowMatch) {
+        nextBestAction = {
+          type: "improve_resume",
+          company: lowMatch.company,
+          role: lowMatch.role,
+          priority: "Medium",
+          badge: "📄 Resume Tuning",
+          title: `Resume match for ${lowMatch.company} is ${lowMatch.matchScore}%`,
+          subtitle: `Incorporate missing keywords into your project bullet points to clear automated recruiter screening.`,
+          ctaText: "1-Click Bullet Improver",
+          ctaLink: `/resume`,
+          targetId: lowMatch._id,
+        };
+      }
+    }
+
+    // 6. Default momentum action
+    if (!nextBestAction) {
+      nextBestAction = {
+        type: "momentum",
+        company: "Market",
+        role: "Software Engineer",
+        priority: "Low",
+        badge: "⚡ Daily Momentum",
+        title: totalApps === 0 ? "Welcome! Add your first application" : "You're on track! Explore Community Experiences",
+        subtitle: totalApps === 0 ? "Log your first internship or load sample data to see the live command center in action." : "Browse crowdsourced OA & interview logs from students at Cisco, Google, and Stripe.",
+        ctaText: totalApps === 0 ? "Add Application" : "View Community Prep",
+        ctaLink: totalApps === 0 ? "/add" : "/community",
+      };
+    }
+
+    // ── NEEDS ATTENTION LIST (High, Medium, Low) ─────────────────────────
+    const needsAttention = [];
+
+    // Follow-ups due
+    pendingContacts.slice(0, 2).forEach(c => {
+      needsAttention.push({
+        id: c._id,
+        company: c.company,
+        title: `${c.name} (${c.company})`,
+        reason: `Referral outreach follow-up due`,
+        priority: "high",
+        actionType: "networking",
+        link: "/networking",
+      });
+    });
+
+    // Deadlines in 1-2 days
+    upcomingDeadlines.filter(i => i.daysLeft <= 2).slice(0, 2).forEach(i => {
+      needsAttention.push({
+        id: i._id,
+        company: i.company,
+        title: `${i.company} — ${i.role}`,
+        reason: `${i.status} deadline in ${i.daysLeft === 0 ? "Today!" : `${i.daysLeft}d`}`,
+        priority: "high",
+        actionType: "deadline",
+        link: "/dashboard",
+      });
+    });
+
+    // Stale apps (>7 days)
+    staleApps.slice(0, 3).forEach(app => {
+      needsAttention.push({
+        id: app._id,
+        company: app.company,
+        title: `${app.company} — ${app.role}`,
+        reason: `No company response for ${app.daysStale} days`,
+        priority: app.daysStale >= 14 ? "high" : "medium",
+        actionType: "ghost_buster",
+        link: "/dashboard",
+      });
+    });
+
+    // ── RECOMMENDED OPPORTUNITIES / TOP MATCHES ──────────────────────────
+    const recommendedTargets = internships
+      .filter(i => i.matchScore != null)
+      .sort((a, b) => b.matchScore - a.matchScore)
+      .slice(0, 4)
+      .map(i => ({
+        id: i._id,
+        company: i.company,
+        role: i.role,
+        matchScore: i.matchScore,
+        status: i.status,
+        missingSkills: i.missingSkills || [],
+      }));
+
+    res.json({
+      todayStats: {
+        careerScore,
+        totalApplications: totalApps,
+        activeInterviews,
+        activeOffers,
+        activeOAs,
+        pendingFollowUps: pendingContacts.length,
+      },
+      nextBestAction,
+      needsAttention: needsAttention.slice(0, 6),
+      recommendedTargets,
+      recommendedMatches: recommendedTargets,
+    });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error("Daily focus error:", err);
+    res.status(500).json({ message: "Failed to load daily focus" });
+  }
+});
+
+// ----------------- AI FUNNEL DIAGNOSTIC & STUDY PLAN -----------------
+// GET /api/me/analytics/diagnostic
+app.get("/api/me/analytics/diagnostic", async (req, res) => {
+  try {
+    const payload = verifyToken(req);
+    const internships = await Internship.find({ userId: payload.id });
+
+    const total = internships.length;
+    const stageCounts = { Applied: 0, OA: 0, Interview: 0, Offer: 0, Rejected: 0, "No Response": 0 };
+    internships.forEach(i => {
+      if (stageCounts[i.status] !== undefined) stageCounts[i.status]++;
+      else stageCounts.Applied++;
+    });
+
+    const oaReached = stageCounts.OA + stageCounts.Interview + stageCounts.Offer;
+    const interviewReached = stageCounts.Interview + stageCounts.Offer;
+    const offers = stageCounts.Offer;
+
+    const appliedToOARate = total > 0 ? Math.round((oaReached / total) * 100) : 0;
+    const oaToInterviewRate = oaReached > 0 ? Math.round((interviewReached / oaReached) * 100) : 0;
+    const interviewToOfferRate = interviewReached > 0 ? Math.round((offers / interviewReached) * 100) : 0;
+
+    let bottleneck = "Top of Funnel Volume";
+    let diagnosis = "You need more application volume to trigger interview opportunities.";
+    let primaryFocus = "Increase high-quality tailored applications";
+    let studyPlan = [
+      { goal: "Submit 8-10 targeted applications weekly with tailored keywords", frequency: "Daily" },
+      { goal: "Connect with 2 university alumni on LinkedIn before applying", frequency: "2x / week" },
+      { goal: "Ensure resume passes ATS scoring (>80% match)", frequency: "Per application" },
+    ];
+
+    if (total >= 5) {
+      if (appliedToOARate < 25) {
+        bottleneck = "Application → OA Screening";
+        diagnosis = `Your application → OA rate is ${appliedToOARate}%. Resumes are likely getting filtered out by ATS keywords before reaching hiring managers.`;
+        primaryFocus = "Resume Keyword Optimization";
+        studyPlan = [
+          { goal: "Use the 1-Click Bullet Improver to weave missing tech stack keywords", frequency: "Per application" },
+          { goal: "Focus on internal referrals via the Networking CRM to bypass ATS screening", frequency: "3x / week" },
+          { goal: "Add quantifiable metrics to existing project bullet points", frequency: "This week" },
+        ];
+      } else if (oaToInterviewRate < 40) {
+        bottleneck = "OA → Interview Conversion";
+        diagnosis = `Your application → OA rate is solid (${appliedToOARate}%), but OA → Interview conversion drops to ${oaToInterviewRate}%. Algorithmic speed and edge case coverage are common culprits.`;
+        primaryFocus = "Algorithmic Speed & Data Structure Mastery";
+        studyPlan = [
+          { goal: "3 LeetCode Mediums/day (focus: Graphs, BFS/DFS, Dynamic Programming)", frequency: "Daily" },
+          { goal: "1 Timed 60-min Mock Assessment on HackerRank/CodeSignal", frequency: "Weekly" },
+          { goal: "Review crowdsourced topics in Community Prep for targeted companies", frequency: "Before every OA" },
+        ];
+      } else if (interviewToOfferRate < 35 && interviewReached >= 2) {
+        bottleneck = "Interview → Final Offer";
+        diagnosis = `You are securing interviews (${interviewReached} reached), but closing final offers requires sharper behavioral storytelling and system architecture clarity.`;
+        primaryFocus = "STAR Behavioral & System Architecture Prep";
+        studyPlan = [
+          { goal: "Draft and practice STAR answers for top 5 project challenges", frequency: "Before interview loop" },
+          { goal: "Practice technical communication: explaining trade-offs out loud", frequency: "3x / week" },
+          { goal: "Prepare 3 insightful questions about the engineering team culture", frequency: "Per company" },
+        ];
+      } else {
+        bottleneck = "Healthy Funnel";
+        diagnosis = `Your conversion rates (${appliedToOARate}% to OA, ${oaToInterviewRate}% to Interview) are healthy! Maintain consistency across your target roles.`;
+        primaryFocus = "Maintaining Application & Interview Momentum";
+        studyPlan = [
+          { goal: "Continue sending 5 high-match applications per week", frequency: "Weekly" },
+          { goal: "Keep recruiter relationships warm in Networking CRM", frequency: "Weekly" },
+          { goal: "Share your OA experiences with the community", frequency: "After each round" },
+        ];
+      }
+    }
+
+    res.json({
+      dropOffStage: bottleneck,
+      bottleneck,
+      diagnosis,
+      primaryFocus,
+      studyPlan: studyPlan.map(s => ({
+        day: s.frequency || "Daily",
+        focus: s.frequency || "Goal",
+        action: s.goal,
+        goal: s.goal,
+        frequency: s.frequency
+      })),
+      funnelSummary: {
+        total,
+        oaReached,
+        interviewReached,
+        offers,
+        appliedToOARate,
+        oaToInterviewRate,
+        interviewToOfferRate,
+      },
+      diagnostic: {
+        bottleneck,
+        dropOffStage: bottleneck,
+        diagnosis,
+        primaryFocus,
+        studyPlan,
+      },
+    });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    res.status(500).json({ message: "Failed to generate diagnostic" });
+  }
+});
+
+// ----------------- COMMUNITY EXPERIENCES ROUTES -----------------
+
+// GET /api/experiences (List crowdsourced logs with search & topic aggregates)
+app.get("/api/experiences", async (req, res) => {
+  try {
+    const { company, round, topic, search } = req.query;
+    let query = {};
+
+    if (company) query.company = { $regex: new RegExp(`^${company}$`, "i") };
+    if (round && round !== "All") query.round = round;
+    if (topic && topic !== "All") query.topics = topic;
+    if (search) {
+      query.$or = [
+        { company: { $regex: search, $options: "i" } },
+        { role: { $regex: search, $options: "i" } },
+        { content: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const experiences = await Experience.find(query).sort({ createdAt: -1 });
+
+    // Aggregate topic counts
+    const topicCountMap = {};
+    experiences.forEach(e => {
+      (e.topics || []).forEach(t => {
+        topicCountMap[t] = (topicCountMap[t] || 0) + 1;
+      });
+    });
+
+    const topTopics = Object.keys(topicCountMap)
+      .map(topic => ({ topic, name: topic, count: topicCountMap[topic] }))
+      .sort((a, b) => b.count - a.count);
+
+    res.json({
+      totalCount: experiences.length,
+      topTopics,
+      topics: topTopics,
+      experiences,
+    });
+  } catch (err) {
+    console.error("Experience fetch error:", err);
+    res.status(500).json({ message: "Failed to fetch community experiences" });
+  }
+});
+
+// POST /api/experiences (Submit new OA / Interview log)
+app.post("/api/experiences", async (req, res) => {
+  try {
+    const payload = verifyToken(req);
+    const user = await User.findById(payload.id);
+    const { company, role, round, difficulty, topics, content, isAnonymous } = req.body;
+
+    if (!company || !role || !content) {
+      return res.status(400).json({ message: "Company, role, and experience write-up are required" });
+    }
+
+    const parsedTopics = Array.isArray(topics)
+      ? topics
+      : typeof topics === "string"
+      ? topics.split(",").map(t => t.trim()).filter(Boolean)
+      : [];
+
+    const exp = new Experience({
+      userId: payload.id,
+      company: company.trim(),
+      role: role.trim(),
+      round: round || "OA",
+      difficulty: difficulty || "Medium",
+      topics: parsedTopics,
+      content: content.trim(),
+      isAnonymous: isAnonymous !== false,
+      authorName: isAnonymous !== false ? "Anonymous Student" : (user?.name || "Student"),
+    });
+
+    await exp.save();
+    res.status(201).json(exp);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error("Save experience error:", err);
+    res.status(500).json({ message: "Failed to save experience" });
+  }
+});
+
+// POST /api/experiences/:id/like
+app.post("/api/experiences/:id/like", async (req, res) => {
+  try {
+    verifyToken(req);
+    const exp = await Experience.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { likes: 1 } },
+      { new: true }
+    );
+    if (!exp) return res.status(404).json({ message: "Experience not found" });
+    res.json({ likes: exp.likes });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    res.status(500).json({ message: "Failed to update like" });
+  }
+});
+
 // ----------------- SAMPLE / SEED DEMO DATA ROUTE -----------------
 app.post("/api/me/seed-sample-data", async (req, res) => {
   try {
@@ -1182,6 +1738,68 @@ Projects:
       }
     }
 
+    // Seed Sample Community Prep Experiences if none exist
+    const experienceCount = await Experience.countDocuments();
+    if (experienceCount === 0) {
+      await Experience.create([
+        {
+          company: "Cisco",
+          role: "Software Engineer Intern",
+          round: "OA",
+          difficulty: "Medium",
+          topics: ["Graphs", "OS", "DBMS", "Computer Networks"],
+          content: "Cisco OA on HackerRank had 2 coding problems + 15 MCQs. Problem 1 was Dijkstra/Shortest Path on a simulated router network. Problem 2 was Subarray Sum with prefix sums. MCQs heavily tested Subnetting, TCP/UDP 3-way handshake, and OS deadlock conditions.",
+          isAnonymous: true,
+          authorName: "Anonymous Peer",
+          likes: 14
+        },
+        {
+          company: "Stripe",
+          role: "Backend Engineering Intern",
+          round: "Technical Interview",
+          difficulty: "Hard",
+          topics: ["System Design", "Concurrency", "DBMS", "REST APIs"],
+          content: "Round 1 was a practical coding challenge in Stripe's web IDE. Implement an idempotency key layer for transaction requests with a simulated SQLite store. Key focus was thread-safety, handling partial failures, and clean error codes. The interviewer cared intensely about edge cases and unit test assertions.",
+          isAnonymous: false,
+          authorName: "David M.",
+          likes: 29
+        },
+        {
+          company: "Google",
+          role: "SWE Intern",
+          round: "Technical Interview",
+          difficulty: "Medium",
+          topics: ["Graphs", "Dynamic Programming", "Trees"],
+          content: "45-minute Google interview loop. Was asked to find the longest path in a directed acyclic graph (DAG) with node constraints. Solved using Topological Sort + memoized DP. Make sure to clearly state your time and space complexities upfront before writing code on Google Docs.",
+          isAnonymous: true,
+          authorName: "Anonymous Peer",
+          likes: 42
+        },
+        {
+          company: "Microsoft",
+          role: "Explore Intern",
+          round: "Behavioral + Technical",
+          difficulty: "Easy",
+          topics: ["Arrays", "System Design", "Behavioral"],
+          content: "Started with 15 minutes of behavioral questions using the STAR format (tell me about a time you had technical conflict). Technical question was LRU Cache implementation with clean O(1) doubly linked list and hash map. Very friendly interviewer who guided through design trade-offs.",
+          isAnonymous: false,
+          authorName: "Sophia K.",
+          likes: 18
+        },
+        {
+          company: "Adobe",
+          role: "Product Engineering Intern",
+          round: "OA",
+          difficulty: "Medium",
+          topics: ["Dynamic Programming", "Strings", "Trees"],
+          content: "Adobe OA consisted of 3 coding questions: Longest Common Subsequence variation, Binary Tree Vertical Order Traversal, and String manipulation with regex. Passed all 3 test suites. Speed matters as there is a time penalty for incorrect submissions.",
+          isAnonymous: true,
+          authorName: "Anonymous Peer",
+          likes: 11
+        }
+      ]);
+    }
+
     res.json({ success: true, message: "Sample demo data loaded successfully!" });
   } catch (err) {
     console.error("Seed error:", err);
@@ -1385,12 +2003,19 @@ Return ONLY a valid JSON object with no markdown formatting:
           if (compMatch && compMatch[1] && !["The", "Our", "This", "Your", "Please", "We", "I"].includes(compMatch[1])) {
             detectedCompany = compMatch[1];
             compConf = 0.80;
+          } else {
+            // Direct company keyword/acronym detection (e.g. "UBS", "Apple", "Netflix")
+            const words = emailText.trim().split(/\s+/);
+            if (words.length <= 4 && words[0].length >= 2) {
+              detectedCompany = words[0];
+              compConf = 0.85;
+            }
           }
         }
       }
 
       const dateMatch = emailText.match(/\b(202\d-[01]\d-[0-3]\d)\b/);
-      const finalCompany = detectedCompany || selectedTarget?.company || "Company";
+      const finalCompany = detectedCompany || selectedTarget?.company || "Company Detected";
       const finalRole = selectedTarget?.role || "Software Engineer";
 
       parsed = {
@@ -1402,7 +2027,9 @@ Return ONLY a valid JSON object with no markdown formatting:
         status_confidence: statusConf,
         extractedDate: dateMatch ? dateMatch[1] : null,
         date_confidence: dateMatch ? 0.85 : 0.40,
-        summary: `Identified update: ${detectedStatus} for ${finalCompany}.`,
+        summary: emailText.trim().length < 15
+          ? `Status check for ${finalCompany} (${detectedStatus}). Paste full recruiter email text for deeper AI confidence.`
+          : `Identified update: ${detectedStatus} for ${finalCompany}.`,
         overall_confidence: Number(((compConf + statusConf) / 2).toFixed(2))
       };
     } else if (selectedTarget && (!parsed.company || parsed.company === "null")) {
@@ -1579,6 +2206,19 @@ app.post("/api/v1/webhooks/add-internship", async (req, res) => {
     res.status(500).json({ message: "Failed to ingest application via webhook" });
   }
 });
+
+// ── Production Static Asset Serving ──────────────────────────────────────
+if (process.env.NODE_ENV === "production") {
+  const buildPath = path.join(__dirname, "../client/build");
+  app.use(express.static(buildPath));
+
+  app.use((req, res) => {
+    if (req.path.startsWith("/api/")) {
+      return res.status(404).json({ message: "API route not found" });
+    }
+    res.sendFile(path.join(buildPath, "index.html"));
+  });
+}
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));

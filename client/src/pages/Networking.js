@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Toast from "../components/Toast";
+import API_BASE from "../apiConfig";
 
 const styles = `
   .net-root {
@@ -338,8 +339,8 @@ export default function Networking() {
     try {
       const token = localStorage.getItem("token");
       const [resContacts, resApps] = await Promise.all([
-        fetch("http://localhost:5000/api/contacts", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("http://localhost:5000/api/internships", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/contacts`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/internships`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
 
       if (resContacts.ok) {
@@ -362,8 +363,8 @@ export default function Networking() {
     try {
       const token = localStorage.getItem("token");
       const url = editingContact
-        ? `http://localhost:5000/api/contacts/${editingContact._id}`
-        : "http://localhost:5000/api/contacts";
+        ? `${API_BASE}/api/contacts/${editingContact._id}`
+        : `${API_BASE}/api/contacts`;
       const method = editingContact ? "PUT" : "POST";
 
       const res = await fetch(url, {
@@ -394,7 +395,7 @@ export default function Networking() {
     if (!window.confirm("Are you sure you want to remove this contact?")) return;
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:5000/api/contacts/${id}`, {
+      const res = await fetch(`${API_BASE}/api/contacts/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -409,7 +410,7 @@ export default function Networking() {
   const handleSeedSampleData = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5000/api/me/seed-sample-data", {
+      const res = await fetch(`${API_BASE}/api/me/seed-sample-data`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -434,7 +435,7 @@ export default function Networking() {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5000/api/me/ai-actions/contact-outreach", {
+      const res = await fetch(`${API_BASE}/api/me/ai-actions/contact-outreach`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

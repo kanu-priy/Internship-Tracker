@@ -37,6 +37,8 @@ const InternshipSchema = new mongoose.Schema(
 
     // ── Resume match score (0–100 or null) ────────────────────────────────
     matchScore:     { type: Number, default: null },
+    matchedSkills:  { type: [String], default: [] },
+    missingSkills:  { type: [String], default: [] },
 
     // ── Email Sync & Automation Metadata ───────────────────────────────
     emailSource:          { type: Boolean, default: false },

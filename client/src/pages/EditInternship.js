@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import API_BASE from "../apiConfig";
 
 const styles = `
   .edit-root {
@@ -169,7 +170,7 @@ export default function EditInternship() {
     async function loadInternship() {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(`http://localhost:5000/api/internships/${id}`, {
+        const res = await fetch(`${API_BASE}/api/internships/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error("Failed to load");
@@ -196,7 +197,7 @@ export default function EditInternship() {
     if (!company || !role || !appliedDate) { setError("Company, Role, and Applied Date are required"); return; }
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:5000/api/internships/${id}`, {
+      const res = await fetch(`${API_BASE}/api/internships/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ company, role, appliedDate, deadline, notes, resumeUsed, status, location, jobDescription }),

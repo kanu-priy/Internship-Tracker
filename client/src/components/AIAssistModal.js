@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import API_BASE from "../apiConfig";
 
 export default function AIAssistModal({ internship, onClose, initialTab = "email" }) {
   const [activeTab, setActiveTab] = useState(initialTab); // 'email', 'interview', 'followup', 'ats'
@@ -19,7 +20,7 @@ export default function AIAssistModal({ internship, onClose, initialTab = "email
     setError("");
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:5000/api/me/ai-actions/${type}`, {
+      const res = await fetch(`${API_BASE}/api/me/ai-actions/${type}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -35,7 +36,13 @@ export default function AIAssistModal({ internship, onClose, initialTab = "email
         })
       });
 
-      const json = await res.json();
+      const text = await res.text();
+      let json = {};
+      try {
+        json = JSON.parse(text);
+      } catch {
+        throw new Error(res.status === 404 ? "API route not found. Please ensure backend server is up to date." : "Received invalid response from server.");
+      }
       if (!res.ok) throw new Error(json.message || "Failed to generate");
 
       setData(prev => ({ ...prev, [type]: json.result }));

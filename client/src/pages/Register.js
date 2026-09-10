@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import API_BASE from "../apiConfig";
 
 const styles = `
   .reg-root {
@@ -164,7 +165,7 @@ export default function Register() {
     if (!name || !email || !password) { setError("All fields are required."); return; }
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/register", {
+      const res = await fetch(`${API_BASE}/api/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
@@ -187,13 +188,7 @@ export default function Register() {
       <div className="reg-root">
         <div className="reg-card">
           <Link to="/" className="reg-logo">
-            <div className="reg-logo-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width: '100%', height: '100%'}}>
-                <path d="M8 2h8l4 10H4L8 2Z"/>
-                <path d="M12 12v6"/>
-                <path d="M8 22v-2c0-1.1.9-2 2-2h4a2 2 0 0 1 2 2v2H8Z"/>
-              </svg>
-            </div>
+            <img src="/logo192.png" alt="DeadlineDesk" width="36" height="36" style={{ borderRadius: 10, objectFit: "cover" }} />
             <div className="reg-logo-text">Deadline<span>Desk</span></div>
           </Link>
 

@@ -171,6 +171,17 @@ const navItems = [
     ),
   },
   {
+    href: "/community",
+    label: "Community Prep",
+    icon: (
+      <svg className="sidebar-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="2" y1="12" x2="22" y2="12"></line>
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+      </svg>
+    ),
+  },
+  {
     href: "/add",
     label: "Add Application",
     icon: (
@@ -223,7 +234,7 @@ export default function Sidebar() {
       <style>{styles}</style>
       <div className="sidebar">
         <Link to="/dashboard" className="sidebar-logo">
-          <div className="sidebar-logo-icon">D</div>
+          <img src="/logo192.png" alt="DeadlineDesk Logo" className="sidebar-logo-icon" style={{ padding: 0 }} />
           <div className="sidebar-logo-text-wrap">
             <div className="sidebar-logo-text">deadline<span>desk</span></div>
             <div className="sidebar-logo-sub">Career Hub</div>

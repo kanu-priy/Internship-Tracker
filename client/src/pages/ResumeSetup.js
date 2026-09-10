@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
-
-const API = "http://localhost:5000";
+import { API_BASE as API } from "../apiConfig";
 
 const styles = `
   .resume-root {
@@ -206,9 +205,76 @@ const styles = `
     color: #991b1b;
   }
 
-  @keyframes toastIn {
-    from { opacity: 0; transform: translateY(-4px); }
-    to   { opacity: 1; transform: translateY(0); }
+  /* 1-Click Bullet Improver Styles */
+  .bullet-card {
+    background: #ffffff;
+    border: 1px solid #e4e0d9;
+    border-radius: 16px;
+    padding: 24px;
+    margin-top: 36px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  }
+  .bullet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .bullet-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #2a2a2a;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .bullet-tag {
+    background: #fdf2f4;
+    color: #6b2737;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid #f9d8de;
+  }
+  .bullet-input-box {
+    width: 100%;
+    background: #faf8f5;
+    border: 1px solid #e4e0d9;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 13px;
+    font-family: inherit;
+    line-height: 1.5;
+    outline: none;
+    box-sizing: border-box;
+    margin-bottom: 12px;
+  }
+  .bullet-input-box:focus {
+    border-color: #6b2737;
+  }
+  .bullet-result-card {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 14px;
+  }
+  .bullet-result-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: #166534;
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+  .bullet-changes-note {
+    font-size: 12px;
+    color: #4b5563;
+    background: #ffffff;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #dcfce7;
+    margin-bottom: 12px;
   }
 `;
 
@@ -220,6 +286,12 @@ export default function ResumeSetup() {
   const [matching, setMatching] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState(null); // { type: 'success'|'error', msg }
+
+  // 1-Click Bullet Improver State
+  const [inputBullet, setInputBullet] = useState("");
+  const [targetRole, setTargetRole] = useState("Software Engineer Intern");
+  const [improvingBullet, setImprovingBullet] = useState(false);
+  const [bulletResult, setBulletResult] = useState(null);
 
   const token = localStorage.getItem("token");
 
@@ -328,6 +400,49 @@ export default function ResumeSetup() {
     setMatching(false);
   }
 
+  const handleImproveBullet = async () => {
+    if (!inputBullet.trim()) return;
+    setImprovingBullet(true);
+    setBulletResult(null);
+    try {
+      const res = await fetch(`${API}/api/me/ai-actions/improve-bullet`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          bullet: inputBullet,
+          targetRole: targetRole || "Software Engineer Intern"
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setBulletResult(data);
+      } else {
+        showToast("error", data.message || "Failed to improve bullet");
+      }
+    } catch (err) {
+      showToast("error", "Error contacting AI bullet improver service");
+    } finally {
+      setImprovingBullet(false);
+    }
+  };
+
+  const handleAcceptBullet = () => {
+    const text = bulletResult?.improvedBullet || bulletResult?.improved;
+    if (!text) return;
+    setResumeText(prev => prev ? `${prev}\n• ${text}` : `• ${text}`);
+    showToast("success", "Added improved bullet to your resume text!");
+  };
+
+  const handleCopyBullet = () => {
+    const text = bulletResult?.improvedBullet || bulletResult?.improved;
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    showToast("success", "Copied improved bullet to clipboard!");
+  };
+
   const isDirty = resumeText !== savedText;
   const charCount = resumeText.length;
 
@@ -336,17 +451,20 @@ export default function ResumeSetup() {
       <style>{styles}</style>
       <div className="resume-root">
         <Sidebar />
+
         <div className="resume-main-wrap">
           <main className="resume-main">
             <div className="resume-content">
+              <Link to="/dashboard" className="resume-back">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                Back to Dashboard
+              </Link>
+
               <div className="resume-header">
-                <Link to="/dashboard" className="resume-back">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                  &nbsp;Back to Dashboard
-                </Link>
                 <h1 className="resume-title">My Resume</h1>
                 <p className="resume-subtitle">
-                  Paste your resume once. DeadlineDesk will automatically score how well you match every saved internship.
+                  Paste your resume plain text below. DeadlineDesk matches this against each
+                  internship's requirements to calculate your match score and highlight missing skills.
                 </p>
               </div>
 
@@ -425,6 +543,70 @@ Internship Tracker — React, Node.js, MongoDB
                   </div>
                 )}
               </div>
+
+              {/* 1-Click Bullet Improver */}
+              <div className="bullet-card">
+                <div className="bullet-header">
+                  <div className="bullet-title">
+                    <span>⚡ 1-Click Resume Bullet Improver</span>
+                    <span className="bullet-tag">AI Powered</span>
+                  </div>
+                </div>
+                <p style={{ fontSize: "13px", color: "#6b7280", margin: "0 0 14px 0" }}>
+                  Turn weak task descriptions into high-impact, quantified resume bullets with strong action verbs and keyword alignment.
+                </p>
+
+                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "10px", marginBottom: "10px" }}>
+                  <input
+                    type="text"
+                    className="bullet-input-box"
+                    placeholder="Enter a bullet point: e.g. Worked on the backend APIs and helped with MongoDB database queries."
+                    value={inputBullet}
+                    onChange={(e) => setInputBullet(e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    className="bullet-input-box"
+                    placeholder="Target Role: e.g. Backend Intern"
+                    value={targetRole}
+                    onChange={(e) => setTargetRole(e.target.value)}
+                  />
+                </div>
+
+                <button
+                  className="resume-save-btn"
+                  style={{ padding: "8px 18px", fontSize: "12px" }}
+                  onClick={handleImproveBullet}
+                  disabled={improvingBullet || !inputBullet.trim()}
+                >
+                  {improvingBullet ? "Optimizing..." : "Improve Bullet"}
+                </button>
+
+                {bulletResult && (
+                  <div className="bullet-result-card">
+                    <div style={{ fontSize: "11px", fontWeight: 700, color: "#15803d", textTransform: "uppercase", marginBottom: "6px" }}>
+                      ✨ Improved Bullet:
+                    </div>
+                    <div className="bullet-result-text">
+                      • {bulletResult.improvedBullet || bulletResult.improved}
+                    </div>
+                    {(bulletResult.changesMade || bulletResult.metricsAdded || bulletResult.feedback) && (
+                      <div className="bullet-changes-note">
+                        <strong>Improvements:</strong> {bulletResult.changesMade || bulletResult.metricsAdded || bulletResult.feedback}
+                      </div>
+                    )}
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button className="resume-save-btn" style={{ padding: "6px 14px", fontSize: "12px" }} onClick={handleAcceptBullet}>
+                        ✓ Insert into Resume
+                      </button>
+                      <button className="resume-clear-btn" style={{ padding: "6px 14px", fontSize: "12px" }} onClick={handleCopyBullet}>
+                        Copy to Clipboard
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
             </div>
           </main>
         </div>

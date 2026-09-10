@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import Toast from "../components/Toast";
 import { useNavigate } from "react-router-dom";
+import API_BASE from "../apiConfig";
 
 const styles = `
   .account-root {
@@ -200,7 +201,7 @@ export default function MyAccount() {
           navigate("/login");
           return;
         }
-        const res = await fetch("http://localhost:5000/api/me/preferences", {
+        const res = await fetch(`${API_BASE}/api/me/preferences`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -222,7 +223,7 @@ export default function MyAccount() {
     setPrefs(updated);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5000/api/me/preferences", {
+      const res = await fetch(`${API_BASE}/api/me/preferences`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -242,7 +243,7 @@ export default function MyAccount() {
     setSendingTest(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5000/api/me/test-email", {
+      const res = await fetch(`${API_BASE}/api/me/test-email`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -261,7 +262,7 @@ export default function MyAccount() {
   const handleSeedSampleData = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5000/api/me/seed-sample-data", {
+      const res = await fetch(`${API_BASE}/api/me/seed-sample-data`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` }
       });

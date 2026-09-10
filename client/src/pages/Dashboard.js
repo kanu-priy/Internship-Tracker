@@ -5,6 +5,7 @@ import AIAssistModal from "../components/AIAssistModal";
 import EmailScannerModal from "../components/EmailScannerModal";
 import Toast from "../components/Toast";
 import { useNavigate } from "react-router-dom";
+import API_BASE from "../apiConfig";
 
 const STATUSES = ["Applied", "Interview", "OA", "Offer", "Rejected"];
 
@@ -140,6 +141,150 @@ const styles = `
   .status-dropdown { background: #ffffff; border: 1px solid #e4e0d9; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 12px; position: absolute; top: 100%; left: 0; width: 160px; z-index: 100; margin-top: 4px; padding: 6px; }
   .status-option { color: #2a2a2a; padding: 6px 10px; font-size: 12px; cursor: pointer; border-radius: 6px; display: flex; align-items: center; font-weight: 600; }
   .status-option:hover { background: #faf8f5; color: #6b2737; }
+
+  /* V3.0 Today Command Center Styles */
+  .today-command-center { display: flex; flex-direction: column; gap: 24px; margin-bottom: 32px; }
+  .today-hero {
+    background: linear-gradient(135deg, #2d2a26 0%, #1f1d1a 100%);
+    color: #ffffff;
+    border-radius: 20px;
+    padding: 28px 32px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+    position: relative;
+    overflow: hidden;
+  }
+  .today-hero::after {
+    content: '';
+    position: absolute;
+    right: -40px;
+    top: -40px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(201, 164, 92, 0.25) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .today-hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(201, 164, 92, 0.2);
+    color: #f1d592;
+    border: 1px solid rgba(201, 164, 92, 0.4);
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 12px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 12px;
+  }
+  .today-hero-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+  .today-hero-desc {
+    font-size: 14px;
+    color: #d4cfc7;
+    line-height: 1.6;
+    max-width: 800px;
+    margin-bottom: 18px;
+  }
+  .today-hero-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .today-btn-primary {
+    background: #c9a45c;
+    color: #1a1816;
+    padding: 10px 22px;
+    border-radius: 10px;
+    font-weight: 800;
+    font-size: 13px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+  }
+  .today-btn-primary:hover {
+    background: #deb66e;
+    transform: translateY(-1px);
+  }
+  .today-btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .today-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+  .today-grid {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 24px;
+  }
+  .today-card {
+    background: #ffffff;
+    border: 1px solid #e4e0d9;
+    border-radius: 16px;
+    padding: 22px 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  }
+  .today-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .today-card-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: #2a2a2a;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .attention-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #faf8f5;
+    border: 1px solid #e4e0d9;
+    margin-bottom: 10px;
+    transition: all 0.2s ease;
+  }
+  .attention-item:hover {
+    background: #ffffff;
+    border-color: #6b2737;
+    transform: translateX(2px);
+  }
+  .badge-prio-high { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; }
+  .badge-prio-med { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; }
+  .badge-prio-low { background: #f3f4f6; color: #4b5563; border: 1px solid #e5e7eb; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; }
+  .match-rec-card {
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #faf8f5;
+    border: 1px solid #e4e0d9;
+    margin-bottom: 10px;
+  }
 `;
 
 function StatusCell({ item, onStatusChange }) {
@@ -264,7 +409,8 @@ export default function Dashboard() {
   const [timelineTarget, setTimelineTarget] = useState(null); // V2.0
   const [matchingId, setMatchingId] = useState(null);         // V2.0
   const [hasResume, setHasResume] = useState(false);          // V2.0
-  const [viewMode, setViewMode] = useState("list");           // 'list' or 'board'
+  const [viewMode, setViewMode] = useState("today");          // 'today', 'list', or 'board'
+  const [dailyFocus, setDailyFocus] = useState(null);         // V3.0 Today Command Center
   const [aiTarget, setAiTarget] = useState(null);
   const [aiInitialTab, setAiInitialTab] = useState("email");
   const [showScanner, setShowScanner] = useState(false);
@@ -291,13 +437,34 @@ export default function Dashboard() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
-    fetch("http://localhost:5000/api/me/resume", {
+    fetch(`${API_BASE}/api/me/resume`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
       .then((d) => setHasResume(!!(d.resumeText && d.resumeText.length > 0)))
       .catch(() => {});
   }, []);
+
+  // V3.0: Fetch Daily Focus for "Today" Command Center
+  const fetchDailyFocus = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      const res = await fetch(`${API_BASE}/api/me/daily-focus`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDailyFocus(data);
+      }
+    } catch (err) {
+      console.error("Daily focus fetch error:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDailyFocus();
+  }, [fetchDailyFocus]);
 
 
   // --------------------------------------------------
@@ -307,7 +474,7 @@ export default function Dashboard() {
  const fetchInternships = useCallback(async () => {
   try {
     const token = localStorage.getItem("token");
-    const res = await fetch("http://localhost:5000/api/internships", {
+    const res = await fetch(`${API_BASE}/api/internships`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -380,7 +547,7 @@ export default function Dashboard() {
 
     let existing = [];
     try {
-      const res = await fetch("http://localhost:5000/api/internships", {
+      const res = await fetch(`${API_BASE}/api/internships`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -418,7 +585,7 @@ export default function Dashboard() {
       }
 
       try {
-        const res = await fetch("http://localhost:5000/api/internships", {
+        const res = await fetch(`${API_BASE}/api/internships`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -468,7 +635,7 @@ useEffect(() => {
     if (!window.confirm("Delete this internship?")) return;
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:5000/api/internships/${id}`, {
+      const res = await fetch(`${API_BASE}/api/internships/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -496,7 +663,7 @@ useEffect(() => {
   try {
     const token = localStorage.getItem("token");
 
-    await fetch(`http://localhost:5000/api/internships/${id}`, {
+    await fetch(`${API_BASE}/api/internships/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -517,7 +684,7 @@ const handleSaveNotes = async (id, notes) => {
   try {
     const token = localStorage.getItem("token");
 
-    const res = await fetch(`http://localhost:5000/api/internships/${id}`, {
+    const res = await fetch(`${API_BASE}/api/internships/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -551,7 +718,7 @@ const handleSaveNotes = async (id, notes) => {
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
-        `http://localhost:5000/api/internships/${internship._id}/match`,
+        `${API_BASE}/api/internships/${internship._id}/match`,
         { method: "POST", headers: { Authorization: `Bearer ${token}` } }
       );
       if (res.ok) fetchInternships();
@@ -567,7 +734,7 @@ const handleSaveNotes = async (id, notes) => {
   const handleSeedSampleData = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5000/api/me/seed-sample-data", {
+      const res = await fetch(`${API_BASE}/api/me/seed-sample-data`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -950,6 +1117,11 @@ const handleSaveNotes = async (id, notes) => {
 
               <div className="view-toggle">
                 <button 
+                  onClick={() => setViewMode('today')} 
+                  className={`view-toggle-btn ${viewMode === 'today' ? 'active' : ''}`}>
+                  ⚡ Today Command
+                </button>
+                <button 
                   onClick={() => setViewMode('list')} 
                   className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}>
                   Feed List
@@ -961,6 +1133,145 @@ const handleSaveNotes = async (id, notes) => {
                 </button>
               </div>
             </div>
+
+            {/* V3.0 TODAY COMMAND CENTER VIEW */}
+            {viewMode === 'today' && dailyFocus && (
+              <div className="today-command-center animate-in">
+                {/* Hero Card: Next Best Action */}
+                <div className="today-hero">
+                  <div className="today-hero-tag">🔥 Priority #1 • Next Best Action</div>
+                  <div className="today-hero-title">
+                    {dailyFocus.nextBestAction?.title || "Stay consistent with your daily outreach"}
+                  </div>
+                  <div className="today-hero-desc">
+                    {dailyFocus.nextBestAction?.reason || "Check your application pipeline and prepare for upcoming interviews or networking follow-ups."}
+                  </div>
+                  <div className="today-hero-actions">
+                    {dailyFocus.nextBestAction?.action && (
+                      <a
+                        href={dailyFocus.nextBestAction?.link || "/dashboard"}
+                        className="today-btn-primary"
+                        target={dailyFocus.nextBestAction?.link?.startsWith('http') ? '_blank' : '_self'}
+                        rel="noreferrer"
+                      >
+                        {dailyFocus.nextBestAction?.action} →
+                      </a>
+                    )}
+                    <button
+                      className="today-btn-secondary"
+                      onClick={() => setViewMode('list')}
+                    >
+                      View All Applications ({internships.length})
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2-Column: Needs Attention & Recommended Matches */}
+                <div className="today-grid">
+                  {/* Needs Attention Column */}
+                  <div className="today-card">
+                    <div className="today-card-header">
+                      <div className="today-card-title">
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#dc2626', display: 'inline-block' }}></span>
+                        Needs Attention ({dailyFocus.needsAttention?.length || 0})
+                      </div>
+                      <span style={{ fontSize: '11px', color: '#8a857e', fontFamily: "'Space Mono', monospace" }}>Priority Stack</span>
+                    </div>
+
+                    {(!dailyFocus.needsAttention || dailyFocus.needsAttention.length === 0) ? (
+                      <div style={{ fontSize: '13px', color: '#8a857e', padding: '24px 0', textAlign: 'center' }}>
+                        🎉 Great job! No urgent or stale applications requiring attention today.
+                      </div>
+                    ) : (
+                      dailyFocus.needsAttention.slice(0, 5).map((item, idx) => (
+                        <div key={idx} className="attention-item">
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                              <strong style={{ fontSize: '14px', color: '#111827' }}>{item.company}</strong>
+                              <span className={item.priority === 'High' ? 'badge-prio-high' : item.priority === 'Medium' ? 'badge-prio-med' : 'badge-prio-low'}>
+                                {item.priority}
+                              </span>
+                              {item.daysLeft !== null && item.daysLeft !== undefined && (
+                                <span style={{ fontSize: '11px', color: '#dc2626', fontWeight: 700, fontFamily: "'Space Mono', monospace" }}>
+                                  {item.daysLeft === 0 ? "Due Today" : item.daysLeft === 1 ? "Due Tomorrow" : `${item.daysLeft}d left`}
+                                </span>
+                              )}
+                              {item.staleDays && (
+                                <span style={{ fontSize: '11px', color: '#d97706', fontWeight: 600 }}>
+                                  {item.staleDays}d inactive
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#6b7280' }}>{item.reason}</div>
+                          </div>
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            <button
+                              className="btn-text"
+                              style={{ color: '#6b2737', fontWeight: 700 }}
+                              onClick={() => {
+                                const target = internships.find(i => i._id === item.id);
+                                if (target) {
+                                  setAiInitialTab("followup");
+                                  setAiTarget(target);
+                                }
+                              }}
+                            >
+                              Ghost Buster
+                            </button>
+                            <button
+                              className="btn-text"
+                              onClick={() => handleEdit(item.id)}
+                            >
+                              View
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Top Match Recommendations */}
+                  <div className="today-card">
+                    <div className="today-card-header">
+                      <div className="today-card-title">
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }}></span>
+                        Top Recommended Matches
+                      </div>
+                      <a href="/resume" style={{ fontSize: '11px', color: '#6b2737', textDecoration: 'none', fontWeight: 700 }}>
+                        Optimize Resume →
+                      </a>
+                    </div>
+
+                    {(!dailyFocus.recommendedMatches || dailyFocus.recommendedMatches.length === 0) ? (
+                      <div style={{ fontSize: '13px', color: '#8a857e', padding: '24px 0', textAlign: 'center' }}>
+                        Add target skills and job descriptions to get instant match scores!
+                      </div>
+                    ) : (
+                      dailyFocus.recommendedMatches.slice(0, 4).map((rec, idx) => (
+                        <div key={idx} className="match-rec-card">
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                            <span style={{ fontWeight: 800, fontSize: '13px', color: '#111827' }}>{rec.company}</span>
+                            <span className="match-badge match-high" style={{ fontFamily: "'Space Mono', monospace" }}>
+                              {rec.matchScore}% Match
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#4b5563', marginBottom: '6px' }}>{rec.role}</div>
+                          {rec.skills && rec.skills.length > 0 && (
+                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                              {rec.skills.slice(0, 3).map((sk, sIdx) => (
+                                <span key={sIdx} style={{ fontSize: '10px', background: '#e5e7eb', padding: '1px 6px', borderRadius: '4px', color: '#374151' }}>
+                                  {sk}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="table-card" style={viewMode === 'board' ? { border: 'none', background: 'transparent', boxShadow: 'none' } : {}}>
               {loading ? (

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import API_BASE from "../apiConfig";
 
 const SAMPLES = [
   {
@@ -49,7 +50,7 @@ export default function EmailScannerModal({ internships = [], onClose, onUpdateS
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5000/api/me/parse-email", {
+      const res = await fetch(`${API_BASE}/api/me/parse-email`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -81,7 +82,7 @@ export default function EmailScannerModal({ internships = [], onClose, onUpdateS
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5000/api/me/parse-email", {
+      const res = await fetch(`${API_BASE}/api/me/parse-email`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

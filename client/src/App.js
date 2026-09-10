@@ -11,6 +11,7 @@ import ResumeSetup from "./pages/ResumeSetup";
 import Integrations from "./pages/Integrations";
 import Networking from "./pages/Networking";
 import Analytics from "./pages/Analytics";
+import Community from "./pages/Community";
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/networking" element={<Networking />} />
         <Route path="/analytics" element={<Analytics />} />
+        <Route path="/community" element={<Community />} />
         <Route path="/add" element={<AddInternship />} />
         
          {/* EDIT INTERNSHIP — IMPORTANT */}

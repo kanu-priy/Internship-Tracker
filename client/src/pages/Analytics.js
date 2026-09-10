@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import API_BASE from "../apiConfig";
 
 const styles = `
   .ana-root {
@@ -159,23 +160,91 @@ const styles = `
     border-radius: 6px;
     transition: width 0.6s ease;
   }
+
+  /* AI Funnel Diagnostic & Study Plan */
+  .diagnostic-card {
+    background: #ffffff;
+    border: 1px solid #e4e0d9;
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  }
+  .diagnostic-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .diagnostic-badge {
+    background: #fdf2f4;
+    color: #6b2737;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid #f9d8de;
+    text-transform: uppercase;
+  }
+  .diagnostic-diagnosis {
+    background: #faf8f5;
+    border-left: 4px solid #6b2737;
+    padding: 14px 18px;
+    border-radius: 0 10px 10px 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #2a2a2a;
+    margin-bottom: 20px;
+  }
+  .plan-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .plan-item {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .plan-day {
+    font-size: 11px;
+    font-weight: 800;
+    color: #15803d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .plan-focus {
+    font-size: 13px;
+    font-weight: 700;
+    color: #166534;
+    margin-bottom: 4px;
+  }
+  .plan-desc {
+    font-size: 12px;
+    color: #4b5563;
+    line-height: 1.4;
+  }
 `;
 
 export default function Analytics() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
+  const [diagnostic, setDiagnostic] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) navigate("/login");
     fetchAnalytics();
+    fetchDiagnostic();
   }, [navigate]);
 
   const fetchAnalytics = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5000/api/me/analytics", {
+      const res = await fetch(`${API_BASE}/api/me/analytics`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -186,6 +255,21 @@ export default function Analytics() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchDiagnostic = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/api/me/analytics/diagnostic`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setDiagnostic(json);
+      }
+    } catch (err) {
+      console.error("Diagnostic fetch error:", err);
     }
   };
 
@@ -215,6 +299,41 @@ export default function Analytics() {
               Live metrics across your application stages, interview conversion rate, and networking velocity.
             </div>
           </div>
+
+          {/* AI FUNNEL DIAGNOSTIC & STUDY PLAN */}
+          {diagnostic && (
+            <div className="diagnostic-card">
+              <div className="diagnostic-header">
+                <div className="card-title">
+                  <span>🧠 AI Funnel Diagnostic & Action Plan</span>
+                </div>
+                <span className="diagnostic-badge">
+                  Bottleneck: {diagnostic.dropOffStage}
+                </span>
+              </div>
+
+              <div className="diagnostic-diagnosis">
+                {diagnostic.diagnosis}
+              </div>
+
+              {diagnostic.studyPlan && diagnostic.studyPlan.length > 0 && (
+                <div>
+                  <div style={{ fontSize: "12px", fontWeight: 800, color: "#166534", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "12px" }}>
+                    📅 Recommended Weekly Study & Prep Routine:
+                  </div>
+                  <div className="plan-grid">
+                    {diagnostic.studyPlan.map((p, idx) => (
+                      <div key={idx} className="plan-item">
+                        <div className="plan-day">{p.day}</div>
+                        <div className="plan-focus">{p.focus}</div>
+                        <div className="plan-desc">{p.action}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* TOP METRICS & FUNNEL SECTION */}
           <div className="ana-grid-2">

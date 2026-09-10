@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import Toast from "../components/Toast";
 import { useNavigate } from "react-router-dom";
+import API_BASE from "../apiConfig";
 
 const styles = `
   .integrations-root {
@@ -183,7 +184,7 @@ export default function Integrations() {
   // Calendar Export
   const handleExportCalendar = () => {
     const token = localStorage.getItem("token");
-    window.open(`http://localhost:5000/api/me/calendar.ics?token=${token}`, "_blank");
+    window.open(`${API_BASE}/api/me/calendar.ics?token=${token}`, "_blank");
     setToast({ message: "Calendar .ics feed downloaded!", type: "success" });
   };
 
@@ -191,7 +192,7 @@ export default function Integrations() {
   const handleExportCSV = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5000/api/internships", {
+      const res = await fetch(`${API_BASE}/api/internships`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error("Failed to fetch applications");
@@ -274,7 +275,7 @@ export default function Integrations() {
     setImporting(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5000/api/internships/bulk-import", {
+      const res = await fetch(`${API_BASE}/api/internships/bulk-import`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
