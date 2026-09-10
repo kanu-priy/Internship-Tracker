@@ -329,23 +329,45 @@ document.addEventListener("DOMContentLoaded", () => {
     showToast("Test notification fired!", "success");
   });
 
+  // ── Connected Web App URL Config ──────────────────────────────────────────
+  chrome.storage.local.get(["dashboardUrl"], (r) => {
+    const el = document.getElementById("inp-dash-url");
+    if (el) el.value = r.dashboardUrl || "http://localhost:3000/dashboard";
+  });
+
+  const saveUrlBtn = document.getElementById("btn-save-dash-url");
+  if (saveUrlBtn) {
+    saveUrlBtn.addEventListener("click", () => {
+      let val = (document.getElementById("inp-dash-url").value || "").trim();
+      if (!val) val = "http://localhost:3000/dashboard";
+      if (!val.startsWith("http://") && !val.startsWith("https://")) val = "https://" + val;
+      if (!val.includes("/dashboard")) val = val.replace(/\/+$/, "") + "/dashboard";
+      chrome.storage.local.set({ dashboardUrl: val }, () => {
+        document.getElementById("inp-dash-url").value = val;
+        showToast("Connected web app saved!", "success");
+      });
+    });
+  }
+
   // ── Open dashboard ────────────────────────────────────────────────────────
   // const openDash = () => chrome.tabs.create({ url: "http://localhost:3000/dashboard" });
   // document.getElementById("openDashboard").addEventListener("click",  openDash);
   // document.getElementById("openDashboard2").addEventListener("click", openDash);
-   const openDash = () => {
-  chrome.tabs.query({ url: "http://localhost:3000/*" }, (tabs) => {
-    if (tabs.length > 0) {
-      // Dashboard already open — reload it so autoSync fires
-      chrome.tabs.reload(tabs[0].id);
-      chrome.tabs.update(tabs[0].id, { active: true });
-    } else {
-      // Not open — open fresh tab
-      chrome.tabs.create({ url: "http://localhost:3000/dashboard" });
-    }
-  });
-};
+  const openDash = () => {
+    chrome.storage.local.get(["dashboardUrl"], (res) => {
+      const targetUrl = res.dashboardUrl || "http://localhost:3000/dashboard";
+      chrome.tabs.query({}, (tabs) => {
+        const found = tabs.find((t) => t.url && (t.url.includes("dashboard") || t.url.startsWith(targetUrl.replace(/\/dashboard.*$/, ""))));
+        if (found) {
+          chrome.tabs.reload(found.id);
+          chrome.tabs.update(found.id, { active: true });
+        } else {
+          chrome.tabs.create({ url: targetUrl });
+        }
+      });
+    });
+  };
 
-document.getElementById("openDashboard").addEventListener("click",  openDash);
-document.getElementById("openDashboard2").addEventListener("click", openDash);
+  document.getElementById("openDashboard").addEventListener("click",  openDash);
+  document.getElementById("openDashboard2").addEventListener("click", openDash);
 });

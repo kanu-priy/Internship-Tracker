@@ -39,6 +39,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  // Register live dashboard URL
+  if (request.type === "SET_DASHBOARD_URL" && request.url) {
+    chrome.storage.local.set({ dashboardUrl: request.url });
+    sendResponse({ success: true });
+    return true;
+  }
+
 // 2. Deadline Alarm — every 3 hours via chrome.alarms
 // ─────────────────────────────────────────────────────────────────────────
 chrome.runtime.onInstalled.addListener(() => {

@@ -3,6 +3,13 @@ window.addEventListener("message", (event) => {
 
   // React app asking for pending items
   if (event.data.type === "DD_GET_PENDING") {
+    try {
+      chrome.runtime.sendMessage({
+        type: "SET_DASHBOARD_URL",
+        url: window.location.origin + "/dashboard"
+      });
+    } catch (_) {}
+
     chrome.runtime.sendMessage({ type: "GET_PENDING" }, (response) => {
       window.postMessage({ type: "DD_PENDING_RESPONSE", data: response?.data || [] }, "*");
     });
