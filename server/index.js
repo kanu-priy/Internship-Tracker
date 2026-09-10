@@ -147,7 +147,7 @@ Analyze the match based on skills, experience, and the role title. Return ONLY a
 Do not wrap it in markdown block. Just valid JSON.`;
       
       const response = await getAIClient().models.generateContent({
-        model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+        model: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
         contents: prompt,
       });
       let text = response.text || "{}";
@@ -589,7 +589,7 @@ Candidate Resume: "${(user.resumeText || "").substring(0, 3000)}"
 Job Description: "${(jobDescription || "").substring(0, 3000)}"`;
 
     const response = await getAIClient().models.generateContent({
-      model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+      model: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
       contents: prompt,
     });
     
@@ -623,7 +623,7 @@ Candidate Resume: "${(user.resumeText || "").substring(0, 3000)}"
 Job Description: "${(jobDescription || "").substring(0, 3000)}"`;
 
     const response = await getAIClient().models.generateContent({
-      model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+      model: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
       contents: prompt,
     });
     
@@ -662,7 +662,7 @@ Instructions:
 - Include a clear, professional Subject line.`;
 
     const response = await getAIClient().models.generateContent({
-      model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+      model: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
       contents: prompt,
     });
 
@@ -852,7 +852,7 @@ Instructions:
 - Include a clear Subject line at the beginning.`;
 
     const response = await getAIClient().models.generateContent({
-      model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+      model: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
       contents: prompt,
     });
 
@@ -962,6 +962,230 @@ app.get("/api/me/analytics", async (req, res) => {
   } catch (err) {
     if (err.status) return res.status(err.status).json({ message: err.message });
     res.status(500).json({ message: "Failed to compute analytics" });
+  }
+});
+
+// ----------------- SAMPLE / SEED DEMO DATA ROUTE -----------------
+app.post("/api/me/seed-sample-data", async (req, res) => {
+  try {
+    const payload = verifyToken(req);
+    const userId = payload.id;
+    const today = new Date().toISOString().slice(0, 10);
+
+    const user = await User.findById(userId);
+    if (user && !user.resumeText) {
+      user.resumeText = `SKILLS: JavaScript, TypeScript, React, Next.js, Node.js, Express, Python, Django, MongoDB, PostgreSQL, Docker, AWS, Git, REST APIs, GraphQL, Agile, System Design, Data Structures & Algorithms.
+
+EDUCATION:
+B.S. in Computer Science — GPA: 3.8/4.0
+Relevant Coursework: Data Structures, Algorithms, Distributed Systems, Database Management, Web Development.
+
+EXPERIENCE & PROJECTS:
+Full Stack Developer Intern — TechSolutions Inc. (Summer)
+• Engineered high-throughput REST microservices using Node.js, Express, and MongoDB, reducing API latency by 35%.
+• Developed responsive UI dashboards in React and TypeScript with real-time WebSocket state management.
+
+Projects:
+• Distributed Task Queue: Built a fault-tolerant Redis-backed worker pipeline in Python & Docker.
+• E-Commerce Platform: Built full-stack SaaS with React, Stripe integration, and PostgreSQL database.`;
+      await user.save();
+    }
+
+    // Sample Applications
+    const sampleApps = [
+      {
+        userId,
+        company: "Google",
+        role: "Software Engineering Intern",
+        status: "Interview",
+        appliedDate: new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10),
+        deadline: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10),
+        notes: "Completed Technical Screening on algorithms. Final round technical interviews scheduled for next week!",
+        resumeUsed: "SWE_Resume_2026.pdf",
+        location: "Mountain View, CA / Remote",
+        jobDescription: "Seeking SWE Interns proficient in C++, Java, Python, or Go with strong computer science fundamentals in data structures, algorithms, and distributed systems.",
+        skills: ["Python", "Algorithms", "Data Structures", "Distributed Systems", "System Design"],
+        matchScore: 92,
+        timeline: [
+          { status: "Applied", date: new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10), note: "Applied via student portal" },
+          { status: "OA", date: new Date(Date.now() - 9 * 86400000).toISOString().slice(0, 10), note: "Scored 100% on OA coding challenge" },
+          { status: "Interview", date: new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10), note: "Invited to Round 1 & 2 Technical Interview" },
+        ],
+      },
+      {
+        userId,
+        company: "Stripe",
+        role: "Backend Engineering Intern",
+        status: "OA",
+        appliedDate: new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10),
+        deadline: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10),
+        notes: "HackerRank assessment received. Focus on concurrency and API design.",
+        resumeUsed: "SWE_Resume_2026.pdf",
+        location: "San Francisco, CA",
+        jobDescription: "Build reliable financial infrastructure using Ruby, Node.js, or Java. High emphasis on API reliability, data integrity, and databases.",
+        skills: ["Node.js", "PostgreSQL", "REST APIs", "System Design", "Docker"],
+        matchScore: 88,
+        timeline: [
+          { status: "Applied", date: new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10), note: "Referred by alumni contact" },
+          { status: "OA", date: new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10), note: "Online Assessment link received" },
+        ],
+      },
+      {
+        userId,
+        company: "Microsoft",
+        role: "Full Stack Software Intern",
+        status: "Applied",
+        appliedDate: new Date(Date.now() - 4 * 86400000).toISOString().slice(0, 10),
+        deadline: new Date(Date.now() + 10 * 86400000).toISOString().slice(0, 10),
+        notes: "Applied via Careers portal. Connected with recruiter on LinkedIn.",
+        resumeUsed: "FullStack_Resume.pdf",
+        location: "Redmond, WA",
+        jobDescription: "Looking for passionate software engineers with experience in React, TypeScript, cloud services (Azure/AWS), and modern web stacks.",
+        skills: ["React", "TypeScript", "Node.js", "AWS", "Docker"],
+        matchScore: 95,
+        timeline: [
+          { status: "Applied", date: new Date(Date.now() - 4 * 86400000).toISOString().slice(0, 10), note: "Application submitted" },
+        ],
+      },
+      {
+        userId,
+        company: "Spotify",
+        role: "Data Engineering Intern",
+        status: "Applied",
+        appliedDate: new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10),
+        deadline: "",
+        notes: "Excited about music recommendation pipelines and real-time streaming analytics.",
+        resumeUsed: "SWE_Resume_2026.pdf",
+        location: "New York, NY",
+        jobDescription: "Build scalable data pipelines using Python, SQL, Kafka, and cloud platforms.",
+        skills: ["Python", "SQL", "Distributed Systems", "AWS"],
+        matchScore: 81,
+        timeline: [
+          { status: "Applied", date: new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10), note: "Application submitted" },
+        ],
+      },
+      {
+        userId,
+        company: "Bloomberg",
+        role: "Software Engineering Intern",
+        status: "Offer",
+        appliedDate: new Date(Date.now() - 28 * 86400000).toISOString().slice(0, 10),
+        deadline: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+        notes: "Received official written offer package! Decision deadline in 2 weeks.",
+        resumeUsed: "SWE_Resume_2026.pdf",
+        location: "New York, NY",
+        jobDescription: "Develop real-time financial systems with high throughput and low latency.",
+        skills: ["C++", "Python", "Data Structures", "Algorithms", "System Design"],
+        matchScore: 90,
+        timeline: [
+          { status: "Applied", date: new Date(Date.now() - 28 * 86400000).toISOString().slice(0, 10), note: "Applied online" },
+          { status: "Interview", date: new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10), note: "Completed final interview loop" },
+          { status: "Offer", date: new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10), note: "Received formal offer letter ⭐" },
+        ],
+      },
+      {
+        userId,
+        company: "Amazon",
+        role: "Software Development Engineer (SDE) Intern",
+        status: "No Response",
+        appliedDate: new Date(Date.now() - 21 * 86400000).toISOString().slice(0, 10),
+        deadline: "",
+        notes: "No update in 21 days. Plan to run Ghost Buster follow-up or connect with recruiter.",
+        resumeUsed: "SWE_Resume_2026.pdf",
+        location: "Seattle, WA",
+        jobDescription: "Build world-class distributed cloud services using Java, Python, and AWS.",
+        skills: ["Java", "Python", "AWS", "Data Structures", "System Design"],
+        matchScore: 85,
+        timeline: [
+          { status: "Applied", date: new Date(Date.now() - 21 * 86400000).toISOString().slice(0, 10), note: "Applied via Amazon Jobs" },
+          { status: "No Response", date: new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10), note: "Marked as stale (>14 days)" },
+        ],
+      }
+    ];
+
+    // Seed Applications (avoid duplicates for this user)
+    for (const app of sampleApps) {
+      const exists = await Internship.findOne({ userId, company: app.company, role: app.role });
+      if (!exists) {
+        await Internship.create(app);
+      }
+    }
+
+    // Sample Networking Contacts
+    const stripeApp = await Internship.findOne({ userId, company: "Stripe" });
+    const googleApp = await Internship.findOne({ userId, company: "Google" });
+
+    const sampleContacts = [
+      {
+        userId,
+        name: "Sarah Chen",
+        company: "Stripe",
+        role: "Senior Engineering Recruiter",
+        email: "sarah.chen@stripe.com",
+        linkedinUrl: "https://linkedin.com/in/sarahchen-recruiter",
+        outreachType: "Referral Request",
+        status: "Referral Secured",
+        referralStatus: "Confirmed",
+        lastContactDate: new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10),
+        nextFollowUpDate: new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10),
+        notes: "Super helpful! Reviewed GitHub projects and submitted internal employee referral.",
+        internshipId: stripeApp?._id || null,
+      },
+      {
+        userId,
+        name: "David Miller",
+        company: "Google",
+        role: "Engineering Manager - Cloud Core",
+        email: "david.miller@google.com",
+        linkedinUrl: "https://linkedin.com/in/davidmiller-em",
+        outreachType: "Coffee Chat",
+        status: "Replied",
+        referralStatus: "None",
+        lastContactDate: new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10),
+        nextFollowUpDate: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10),
+        notes: "Agreed to 15-min virtual coffee chat this Thursday to discuss team architecture.",
+        internshipId: googleApp?._id || null,
+      },
+      {
+        userId,
+        name: "Alex Rivera",
+        company: "Microsoft",
+        role: "Software Engineer II (University Alum)",
+        email: "alex.rivera@microsoft.com",
+        linkedinUrl: "https://linkedin.com/in/alexrivera-swe",
+        outreachType: "Alumni Connection",
+        status: "Contacted",
+        referralStatus: "Requested",
+        lastContactDate: new Date(Date.now() - 4 * 86400000).toISOString().slice(0, 10),
+        nextFollowUpDate: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10),
+        notes: "Sent personalized alumni message highlighting distributed systems interest.",
+      },
+      {
+        userId,
+        name: "Priya Patel",
+        company: "Bloomberg",
+        role: "Campus Talent Lead",
+        email: "priya.patel@bloomberg.net",
+        linkedinUrl: "https://linkedin.com/in/priyapatel-recruiting",
+        outreachType: "Recruiter Pitch",
+        status: "Replied",
+        referralStatus: "None",
+        lastContactDate: new Date(Date.now() - 10 * 86400000).toISOString().slice(0, 10),
+        notes: "Shared details regarding the offer package and office placement options.",
+      }
+    ];
+
+    for (const c of sampleContacts) {
+      const exists = await Contact.findOne({ userId, name: c.name, company: c.company });
+      if (!exists) {
+        await Contact.create(c);
+      }
+    }
+
+    res.json({ success: true, message: "Sample demo data loaded successfully!" });
+  } catch (err) {
+    console.error("Seed error:", err);
+    res.status(500).json({ message: "Failed to load sample data" });
   }
 });
 
@@ -1113,7 +1337,7 @@ Return ONLY a valid JSON object with no markdown formatting:
 }`;
 
         const response = await getAIClient().models.generateContent({
-          model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+          model: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
           contents: prompt,
         });
 
