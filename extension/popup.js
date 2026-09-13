@@ -332,14 +332,14 @@ document.addEventListener("DOMContentLoaded", () => {
   // ── Connected Web App URL Config ──────────────────────────────────────────
   chrome.storage.local.get(["dashboardUrl"], (r) => {
     const el = document.getElementById("inp-dash-url");
-    if (el) el.value = r.dashboardUrl || "http://localhost:3000/dashboard";
+    if (el) el.value = r.dashboardUrl || "https://deadlinedesk-qefj.onrender.com/dashboard";
   });
 
   const saveUrlBtn = document.getElementById("btn-save-dash-url");
   if (saveUrlBtn) {
     saveUrlBtn.addEventListener("click", () => {
       let val = (document.getElementById("inp-dash-url").value || "").trim();
-      if (!val) val = "http://localhost:3000/dashboard";
+      if (!val) val = "https://deadlinedesk-qefj.onrender.com/dashboard";
       if (!val.startsWith("http://") && !val.startsWith("https://")) val = "https://" + val;
       if (!val.includes("/dashboard")) val = val.replace(/\/+$/, "") + "/dashboard";
       chrome.storage.local.set({ dashboardUrl: val }, () => {
@@ -355,7 +355,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // document.getElementById("openDashboard2").addEventListener("click", openDash);
   const openDash = () => {
     chrome.storage.local.get(["dashboardUrl"], (res) => {
-      const targetUrl = res.dashboardUrl || "http://localhost:3000/dashboard";
+      const targetUrl = res.dashboardUrl || "https://deadlinedesk-qefj.onrender.com/dashboard";
       chrome.tabs.query({}, (tabs) => {
         const found = tabs.find((t) => t.url && (t.url.includes("dashboard") || t.url.startsWith(targetUrl.replace(/\/dashboard.*$/, ""))));
         if (found) {

@@ -310,6 +310,43 @@ export default function Integrations() {
           <div className="header-sub">Import your existing spreadsheets, export your tracker, and sync calendar deadlines</div>
 
           <div className="integrations-grid">
+            {/* CHROME EXTENSION CARD */}
+            <div className="card" style={{ gridColumn: "1 / -1", border: "1.5px solid #6b2737", background: "#fdfbf9" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
+                <div style={{ display: "flex", gap: "16px", alignItems: "flex-start" }}>
+                  <img src="/logo192.png" width="48" height="48" style={{ borderRadius: "12px", boxShadow: "0 4px 12px rgba(107,39,55,0.15)" }} alt="DeadlineDesk Extension" />
+                  <div>
+                    <div className="card-title" style={{ fontSize: "18px", marginBottom: "4px" }}>
+                      DeadlineDesk Chrome Extension
+                      <span className="badge-active" style={{ background: "#dcfce7", color: "#166534" }}>Pre-Configured for Cloud</span>
+                    </div>
+                    <div className="card-desc" style={{ maxWidth: "620px", marginBottom: "12px", fontSize: "13px", lineHeight: 1.5 }}>
+                      Track jobs directly on LinkedIn and Internshala with 1 click, receive desktop alarms before deadlines, and automatically sync applications to your live dashboard.
+                    </div>
+                    <div style={{ fontSize: "12px", color: "#5a5650", lineHeight: 1.6 }}>
+                      <strong>How to install in 30 seconds:</strong>
+                      <ol style={{ margin: "4px 0 0 18px", padding: 0 }}>
+                        <li>Click <strong>Download Extension (.zip)</strong> and unzip the folder.</li>
+                        <li>Open Google Chrome and navigate to <code>chrome://extensions/</code>.</li>
+                        <li>Turn on <strong>Developer mode</strong> (top-right) and click <strong>Load unpacked</strong>.</li>
+                        <li>Select the unzipped folder — it automatically syncs with this live dashboard!</li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <a
+                    href="/deadlinedesk-extension.zip"
+                    download="deadlinedesk-extension.zip"
+                    className="btn-primary"
+                    style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "8px", padding: "12px 20px", fontSize: "14px", fontWeight: 700 }}
+                  >
+                    📦 Download Extension (.zip)
+                  </a>
+                </div>
+              </div>
+            </div>
+
             {/* SPREADSHEET / CSV IMPORTER */}
             <div className="card" style={{ gridColumn: "1 / -1" }}>
               <div className="card-icon-wrap">📑</div>
