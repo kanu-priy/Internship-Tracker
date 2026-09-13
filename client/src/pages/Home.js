@@ -636,7 +636,7 @@ export default function Home() {
         <section className="hero-section">
           <div className="hero-badge">
             <span className="dot"></span>
-            v3.0 Production Ready • Zero Lock-In
+            Live & Production Ready • 100% Free
           </div>
 
           <h1 className="hero-title">
