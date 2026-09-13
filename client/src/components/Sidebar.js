@@ -257,7 +257,29 @@ export default function Sidebar() {
           })}
         </ul>
 
-        <div className="sidebar-footer">
+        <div className="sidebar-footer" style={{ padding: "0 14px", marginTop: "auto" }}>
+          <a
+            href="/deadlinedesk-extension.zip"
+            download="deadlinedesk-extension.zip"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              background: "rgba(107, 39, 55, 0.08)",
+              color: "#6b2737",
+              fontWeight: 700,
+              fontSize: "12px",
+              padding: "9px 12px",
+              borderRadius: "10px",
+              textDecoration: "none",
+              marginBottom: "10px",
+              transition: "all 0.2s ease",
+            }}
+            title="Download pre-configured Chrome Extension (.zip)"
+          >
+            🧩 Get Chrome Extension
+          </a>
           <div className="sidebar-version">v3.0 • Bespoke Studio</div>
         </div>
       </div>
