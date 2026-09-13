@@ -559,7 +559,6 @@ const styles = `
 
 export default function Home() {
   const [activePlaygroundTab, setActivePlaygroundTab] = useState("priority");
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // Interactive State for Tab 1: Priority Stack
   const [simStripeDays, setSimStripeDays] = useState(2);
@@ -580,11 +579,6 @@ export default function Home() {
     stage: "Interview",
     text: "Hi Kanupriya! We were thrilled by your application for Software Engineer Intern. We would love to invite you to a 45-minute technical coding round with our systems engineering team."
   });
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) setIsLoggedIn(true);
-  }, []);
 
   const triggerSimFlash = (days) => {
     setSimStripeDays(days);
@@ -621,14 +615,8 @@ export default function Home() {
             <a href="/deadlinedesk-extension.zip" download="deadlinedesk-extension.zip" className="nav-link" title="Download Chrome Extension">
               🧩 Extension
             </a>
-            {isLoggedIn ? (
-              <Link to="/dashboard" className="nav-btn-primary">Go to Dashboard →</Link>
-            ) : (
-              <>
-                <Link to="/login" className="nav-btn-outline">Sign In</Link>
-                <Link to="/register" className="nav-btn-primary">Get Started Free</Link>
-              </>
-            )}
+            <Link to="/login" className="nav-btn-outline">Sign In</Link>
+            <Link to="/register" className="nav-btn-primary">Get Started Free</Link>
           </nav>
         </header>
 
@@ -650,8 +638,8 @@ export default function Home() {
           </p>
 
           <div className="hero-actions">
-            <Link to={isLoggedIn ? "/dashboard" : "/register"} className="hero-btn-main">
-              {isLoggedIn ? "Open Dashboard →" : "Start Tracking for Free →"}
+            <Link to="/register" className="hero-btn-main">
+              Start Tracking for Free →
             </Link>
             <a href="#demo" className="hero-btn-secondary">
               ⚡ Try Interactive Demo
